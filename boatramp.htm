@@ -1,0 +1,2239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lake McConaughy Ramp Conditions</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet"/>
+
+  <style>
+    :root{
+      --bg:#07131f;
+      --panel:#0d2033;
+      --panel2:#122b45;
+      --text:#eef7ff;
+      --muted:#9ab0c3;
+      --water:#2aa8ff;
+      --open:#20c978;
+      --limited:#f4bc3f;
+      --closed:#ef4f55;
+      --line:#233b55;
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      background:
+        radial-gradient(circle at 12% 0%, rgba(42,168,255,.20), transparent 36rem),
+        linear-gradient(180deg,#07131f 0%, #091a2b 100%);
+      color:var(--text);
+      font-family:Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .page{min-height:100vh;padding:16px;}
+
+    .topbar{
+      display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:14px;
+    }
+
+    .brand{display:flex;gap:12px;align-items:center}
+    h1{margin:0;font-size:1.85rem;font-weight:950;letter-spacing:-.04em}
+    .top-sub{color:var(--muted);font-size:.92rem;margin-top:3px}
+    .source-pill{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .pill{
+      border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.06);
+      color:#d8e9f7;border-radius:999px;padding:.48rem .75rem;font-size:.82rem;white-space:nowrap;
+    }
+
+    .main-layout{
+      display:grid;
+      grid-template-columns:380px 1fr;
+      gap:14px;
+      align-items:stretch;
+    }
+
+    @media(max-width:1050px){
+      .main-layout{grid-template-columns:1fr}
+      .topbar{flex-direction:column}
+      .source-pill{justify-content:flex-start}
+    }
+
+    .panel{
+      background:linear-gradient(180deg, rgba(18,43,69,.97), rgba(9,26,43,.97));
+      border:1px solid rgba(255,255,255,.09);
+      border-radius:22px;
+      box-shadow:0 20px 70px rgba(0,0,0,.28);
+      overflow:hidden;
+    }
+
+    .sidebar{padding:16px}
+
+    .hero{
+      background:linear-gradient(135deg, rgba(42,168,255,.19), transparent 60%),rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:20px;
+      padding:16px;
+      margin-bottom:12px;
+    }
+
+    .hero-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}
+    .hero h2{margin:0;font-size:1.35rem;font-weight:950;letter-spacing:-.03em}
+    .small-note{color:var(--muted);font-size:.78rem;line-height:1.35;margin-top:5px}
+    a{color:#8dd5ff}
+
+    .status-badge{
+      border-radius:999px;padding:.42rem .72rem;font-size:.76rem;font-weight:950;color:#08131f;
+    }
+    .status-open{background:var(--open)}
+    .status-limited{background:var(--limited)}
+    .status-closed{background:var(--closed);color:#fff}
+
+    .metric-grid{
+      display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;
+    }
+
+    .metric{
+      background:rgba(0,0,0,.20);
+      border:1px solid rgba(255,255,255,.075);
+      border-radius:15px;
+      padding:12px;
+    }
+    .metric .label{
+      color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px
+    }
+    .metric .value{font-size:1.5rem;font-weight:950;letter-spacing:-.04em}
+    .metric .note{color:var(--muted);font-size:.76rem;margin-top:3px}
+
+    .elev-input{display:grid;grid-template-columns:1fr auto;gap:8px}
+    .form-control{background:#071827;color:var(--text);border-color:#294461}
+    .form-control:focus{background:#071827;color:var(--text);border-color:var(--water);box-shadow:0 0 0 .2rem rgba(42,168,255,.15)}
+    .btn-primary{background:var(--water);border-color:var(--water);color:#06131f;font-weight:900}
+
+    .two-card{display:grid;grid-template-columns:1fr;gap:12px;}
+
+    .info-card{
+      background:rgba(255,255,255,.045);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:18px;
+      padding:15px;
+    }
+
+    .info-card h3{
+      margin:0 0 12px;
+      font-size:.9rem;
+      text-transform:uppercase;
+      color:#e5f5ff;
+      letter-spacing:.06em;
+      font-weight:950;
+    }
+
+    .dot{height:13px;width:13px;border-radius:50%;display:inline-block}
+
+    .best-name{
+      display:flex;align-items:center;gap:9px;
+      font-size:1.35rem;
+      font-weight:950;
+      margin-bottom:8px;
+    }
+
+    .best-depth{
+      font-size:2rem;
+      font-weight:950;
+      color:var(--open);
+      letter-spacing:-.05em;
+      margin-bottom:4px;
+    }
+
+    .recommend{
+      margin-top:12px;
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+      color:#9af0bd;
+      background:rgba(32,201,120,.14);
+      border:1px solid rgba(32,201,120,.28);
+      border-radius:999px;
+      padding:.4rem .62rem;
+      font-size:.78rem;
+      font-weight:900;
+      text-transform:uppercase;
+    }
+
+    .map-panel{min-height:600px;position:relative}
+    #map{height:100%;min-height:600px;width:100%;background:#07131f}
+
+    .map-legend{
+      position:absolute;
+      top:16px;
+      right:16px;
+      z-index:850;
+      background:rgba(7,19,31,.88);
+      border:1px solid rgba(255,255,255,.16);
+      border-radius:14px;
+      padding:12px 14px;
+      backdrop-filter:blur(8px);
+      box-shadow:0 10px 30px rgba(0,0,0,.25);
+    }
+
+    .map-legend .legend-row{
+      display:flex;align-items:center;gap:10px;margin:7px 0;font-weight:750;font-size:.9rem;
+    }
+
+    .contour-toggle{display:none;
+      position:absolute;
+      left:16px;
+      bottom:16px;
+      z-index:850;
+      background:rgba(7,19,31,.88);
+      border:1px solid rgba(255,255,255,.16);
+      border-radius:14px;
+      padding:10px 12px;
+      color:#d8e9f7;
+      font-size:.82rem;
+      backdrop-filter:blur(8px);
+      box-shadow:0 10px 30px rgba(0,0,0,.25);
+    }
+    .contour-toggle strong{color:#66d9ff}
+
+    .contour-depth-label{
+      background:transparent;
+      border:0;
+      box-shadow:none;
+      color:#f4fbff;
+      text-shadow:
+        -1px -1px 0 #06131f,
+         1px -1px 0 #06131f,
+        -1px  1px 0 #06131f,
+         1px  1px 0 #06131f,
+         0 0 5px #06131f;
+      font-size:11px;
+      font-weight:900;
+      line-height:1;
+      padding:0;
+      pointer-events:none;
+    }
+
+    .ramp-board{
+      margin-top:14px;
+      background:linear-gradient(180deg, rgba(18,43,69,.97), rgba(9,26,43,.97));
+      border:1px solid rgba(255,255,255,.09);
+      border-radius:22px;
+      box-shadow:0 20px 70px rgba(0,0,0,.24);
+      padding:16px;
+    }
+
+    .board-head{
+      display:flex;justify-content:space-between;align-items:end;gap:12px;margin-bottom:12px
+    }
+    .board-head h2{
+      margin:0;font-size:1.35rem;font-weight:950;letter-spacing:-.03em
+    }
+    .board-head .hint{color:var(--muted);font-size:.85rem}
+
+    .ramp-groups{
+      display:grid;
+      grid-template-columns:1fr 1fr 2.2fr;
+      gap:12px;
+    }
+
+    @media(max-width:1100px){
+      .ramp-groups{grid-template-columns:1fr}
+      .map-panel,#map{min-height:430px}
+    }
+
+    .group{
+      border:1px solid rgba(255,255,255,.09);
+      border-radius:17px;
+      padding:10px;
+      background:rgba(255,255,255,.035);
+    }
+
+    .group-title{
+      border-radius:12px;
+      padding:9px 10px;
+      font-size:.88rem;
+      font-weight:950;
+      text-transform:uppercase;
+      margin-bottom:9px;
+      display:flex;justify-content:space-between;align-items:center
+    }
+    .group-title.open{background:rgba(32,201,120,.18);color:#9af0bd;border:1px solid rgba(32,201,120,.32)}
+    .group-title.limited{background:rgba(244,188,63,.18);color:#ffdb73;border:1px solid rgba(244,188,63,.32)}
+    .group-title.closed{background:rgba(239,79,85,.17);color:#ff9a9e;border:1px solid rgba(239,79,85,.32)}
+
+    .ramp-list-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+      gap:8px;
+    }
+
+    .ramp-card{
+      background:rgba(7,19,31,.72);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:13px;
+      padding:10px 11px;
+      cursor:pointer;
+      transition:.15s ease;
+    }
+    .ramp-card:hover{transform:translateY(-1px);background:rgba(255,255,255,.07)}
+
+    .ramp-name{
+      font-weight:900;
+      font-size:.9rem;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      margin-bottom:5px;
+    }
+
+    .ramp-bottom-row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+    .ramp-depth{font-size:1.18rem;font-weight:950;letter-spacing:-.03em}
+    .ramp-depth.open{color:var(--open)}
+    .ramp-depth.limited{color:var(--limited)}
+    .ramp-depth.closed{color:var(--closed)}
+    .mini-status{
+      border-radius:999px;
+      padding:.22rem .42rem;
+      font-size:.68rem;
+      font-weight:950;
+      text-transform:uppercase;
+    }
+    .mini-status.open{background:rgba(32,201,120,.16);color:#9af0bd;border:1px solid rgba(32,201,120,.28)}
+    .mini-status.limited{background:rgba(244,188,63,.16);color:#ffdb73;border:1px solid rgba(244,188,63,.28)}
+    .mini-status.closed{background:rgba(239,79,85,.16);color:#ff9a9e;border:1px solid rgba(239,79,85,.28)}
+
+    .empty{
+      display:grid;
+      place-items:center;
+      min-height:130px;
+      color:var(--muted);
+      border:1px dashed rgba(255,255,255,.16);
+      border-radius:13px;
+      text-align:center;
+      padding:16px;
+      font-size:.9rem;
+    }
+
+    .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#0d2033;color:#eef7ff}
+    .leaflet-popup-content{font-size:.88rem}
+  
+    .home-control{
+      background:#fff;
+      color:#111;
+      border-radius:4px;
+      width:34px;
+      height:34px;
+      line-height:34px;
+      text-align:center;
+      font-size:18px;
+      font-weight:900;
+      cursor:pointer;
+      box-shadow:0 1px 5px rgba(0,0,0,.35);
+      border:1px solid #aaa;
+    }
+    .home-control:hover{background:#f3f3f3}
+
+    .tabs{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin:10px 0 14px 0;
+      align-items:center;
+    }
+    .tab-btn{
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(255,255,255,.06);
+      color:var(--text);
+      border-radius:999px;
+      padding:.7rem 1rem;
+      font-weight:950;
+      cursor:pointer;
+      transition:.15s ease;
+      line-height:1;
+    }
+    .tab-btn:hover{background:rgba(255,255,255,.10)}
+    .tab-btn.active{
+      background:var(--water);
+      border-color:var(--water);
+      color:#06131f;
+    }
+    .tab-pane{display:none;}
+    .tab-pane.active{display:block;}
+    .chart-panel{padding:16px;min-height:720px;}
+    .chart-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;}
+    .chart-top h2{margin:0;font-size:1.3rem;font-weight:950;letter-spacing:-.03em;}
+    .chart-controls{display:flex;gap:8px;align-items:center;}
+    .chart-wrap{
+      background:#fff;
+      color:#111;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.12);
+      padding:12px;
+      overflow:auto;
+    }
+    #rampElevationSvg{display:block;width:100%;min-width:1100px;height:660px;background:#fff;}
+    #rampSlopeSvg{display:block;width:100%;min-width:1100px;height:430px;background:#fff;border-top:1px solid #e5e7eb;margin-top:8px;}
+
+
+    .leaflet-pane.ramp-red-pane{z-index:760;}
+    .leaflet-pane.ramp-yellow-pane{z-index:770;}
+    .leaflet-pane.ramp-green-pane{z-index:780;}
+
+    .trend-panel{padding:16px;min-height:720px;}
+    .trend-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;}
+    .trend-top h2{margin:0;font-size:1.3rem;font-weight:950;letter-spacing:-.03em;}
+    .trend-grid{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:12px;margin:14px 0;}
+    @media(max-width:1100px){.trend-grid{grid-template-columns:repeat(2,1fr);}}
+    @media(max-width:650px){.trend-grid{grid-template-columns:1fr;}}
+    .trend-metric{background:rgba(7,19,31,.72);border:1px solid rgba(255,255,255,.10);border-radius:15px;padding:13px;}
+    .trend-label{color:var(--muted);font-size:.74rem;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;}
+    .trend-value{font-size:1.45rem;font-weight:950;letter-spacing:-.04em;}
+    .trend-note{color:var(--muted);font-size:.76rem;margin-top:3px;}
+    .trend-up{color:#9af0bd;}
+    .trend-down{color:#ff9a9e;}
+    .trend-flat{color:#d8e9f7;}
+    .trend-chart-wrap{background:#fff;color:#111;border-radius:16px;border:1px solid rgba(255,255,255,.12);padding:12px;overflow:auto;min-height:470px;}
+    #lakeTrendSvg{display:block;width:100%;min-width:1050px;height:470px;background:#fff;}
+    .trend-status{color:var(--muted);font-size:.82rem;margin-top:8px;line-height:1.35;}
+
+
+    .dwee-frame-wrap{
+      background:#fff;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.12);
+      overflow:hidden;
+      min-height:620px;
+      margin-top:12px;
+    }
+    .dwee-frame{
+      width:100%;
+      height:620px;
+      border:0;
+      background:#fff;
+    }
+    .trend-fallback-note{
+      background:rgba(244,188,63,.13);
+      border:1px solid rgba(244,188,63,.35);
+      color:#ffdb73;
+      padding:10px 12px;
+      border-radius:12px;
+      margin:10px 0;
+      font-size:.85rem;
+      line-height:1.35;
+    }
+
+
+    .trend-images{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+      margin-top:14px;
+    }
+    @media(max-width:1000px){.trend-images{grid-template-columns:1fr;}}
+    .trend-image-card{
+      background:#fff;
+      color:#111827;
+      border-radius:16px;
+      padding:12px;
+      border:1px solid rgba(255,255,255,.12);
+    }
+    .trend-image-card h3{
+      font-size:1rem;
+      font-weight:950;
+      text-align:center;
+      margin:4px 0 10px;
+    }
+    .trend-image-card img{
+      width:100%;
+      height:auto;
+      display:block;
+      border-radius:8px;
+    }
+
+
+    .boat-marker{
+      width:28px;height:28px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      border:3px solid #06131f;
+      box-shadow:0 0 7px rgba(0,0,0,.45);
+      color:#fff;
+      font-size:16px;
+      line-height:1;
+      font-weight:900;
+    }
+    .ramp-label{
+      background:rgba(7,19,31,.80);
+      color:#fff;
+      border:1px solid rgba(255,255,255,.35);
+      border-radius:999px;
+      padding:2px 6px;
+      font-size:11px;
+      font-weight:900;
+      white-space:nowrap;
+      box-shadow:0 1px 5px rgba(0,0,0,.35);
+      text-shadow:0 1px 2px rgba(0,0,0,.8);
+    }
+    .bar-hover{cursor:pointer;}
+    .bar-hover:hover{opacity:.72;}
+
+</style>
+</head>
+
+<body>
+  <div class="page">
+    <header class="topbar">
+      <div class="brand">
+        <div>
+          <h1>Lake McConaughy Ramp Conditions</h1>
+          <div class="top-sub">Status is calculated from current lake elevation, each ramp bottom, and whether water is more than 3 ft above the ramp top.</div>
+        </div>
+      </div>
+      <div class="source-pill">
+        <span class="pill" id="lastUpdated">Updated --</span>
+        <span class="pill">Refresh interval: 15 min</span>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="Dashboard tabs">
+      <button class="tab-btn active" data-tab="conditionsTab">Map & Ramp Conditions</button>
+      <button class="tab-btn" data-tab="graphicTab">Ramp Elevation Graphic</button>
+      <button class="tab-btn" data-tab="trendsTab">Lake Elevation Trends</button>
+    </nav>
+
+    <div class="tab-pane active" id="conditionsTab">
+    <section class="main-layout">
+      <aside class="panel sidebar">
+        <section class="hero">
+          <div class="hero-head">
+            <div>
+              <h2>Lake McConaughy</h2>
+              <div class="small-note">Current elevation source: <a href="https://cnppid.com/lake-river-data" target="_blank">CNPPID Reservoir/River Data</a></div>
+            </div>
+            <span class="status-badge status-closed" id="overallStatus">CLOSED</span>
+          </div>
+
+          <div class="metric-grid">
+            <div class="metric">
+              <div class="label">Current Elevation</div>
+              <div class="value"><span id="lakeElevationText">3217.3</span> ft</div>
+              <div class="note">Refresh from CNPPID or edit manually</div>
+            </div>
+
+            <div class="metric">
+              <div class="label">Usable Ramps</div>
+              <div class="value"><span id="usableText">--</span>/<span id="totalText">16</span></div>
+              <div class="note">Open + limited</div>
+            </div>
+          </div>
+
+          <div class="elev-input">
+            <input id="lakeElevationInput" class="form-control" type="number" step="0.1" value="3217.3">
+            <button class="btn btn-primary" id="applyBtn">Apply</button>
+          </div>
+          <button class="btn btn-primary w-100 mt-2" id="refreshElevationBtn">Refresh current elevation</button>
+          <div class="small-note" id="liveElevationStatus">Click refresh to check CNPPID. If browser security blocks the live read, the displayed/manual value is used.</div>
+          <div class="small-note mt-2" id="overtopSummary" style="color:#ffdb73;font-weight:800;"></div>
+        </section>
+
+        <div class="two-card">
+          <section class="info-card">
+            <h3>Best Available Ramp</h3>
+            <div class="best-name">📍 <span id="bestRampName">--</span></div>
+            <div class="best-depth" id="bestRampDepth">--</div>
+            <div class="small-note">Above ramp bottom</div>
+            <div class="recommend">✓ Launch Recommended</div>
+          </section>
+        </div>
+      </aside>
+
+      <main class="panel map-panel">
+        <div id="map"></div>
+        <div class="map-legend">
+          <div class="legend-row"><span class="dot" style="background:var(--open)"></span>Open <strong id="mapOpenCount">0</strong></div>
+          <div class="legend-row"><span class="dot" style="background:var(--limited)"></span>Limited / Use Caution <strong id="mapLimitedCount">0</strong></div>
+          <div class="legend-row"><span class="dot" style="background:var(--closed)"></span>Closed <strong id="mapClosedCount">0</strong></div>
+        </div>
+      </main>
+    </section>
+
+    <section class="ramp-board">
+      <div class="board-head">
+        <div>
+          <h2>Boat Ramp Conditions</h2>
+          <div class="hint">Water level above (+) or below (–) each ramp bottom.</div>
+        </div>
+      </div>
+
+      <div class="ramp-groups">
+        <div class="group">
+          <div class="group-title open">Open <span id="openCountTitle">0</span></div>
+          <div id="openGroup" class="ramp-list-grid"></div>
+        </div>
+
+        <div class="group">
+          <div class="group-title limited">Limited / Use Caution <span id="limitedCountTitle">0</span></div>
+          <div id="limitedGroup" class="ramp-list-grid"></div>
+        </div>
+
+        <div class="group">
+          <div class="group-title closed">Closed <span id="closedCountTitle">0</span></div>
+          <div id="closedGroup" class="ramp-list-grid"></div>
+        </div>
+      </div>
+    </section>
+    </div>
+
+    <div class="tab-pane" id="graphicTab">
+      <section class="panel chart-panel">
+        <div class="chart-top">
+          <div>
+            <h2>Ramp Elevation Graphic</h2>
+            <div class="small-note">Bars are organized upstream to downstream and show measured ramp bottom-to-top elevation.</div>
+          </div>
+          <div class="chart-controls">
+            <button class="btn btn-primary" id="refreshGraphicElevationBtn">Refresh current elevation</button>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <svg id="rampElevationSvg" viewBox="0 0 1280 660" role="img" aria-label="Lake McConaughy ramp elevations graphic"></svg>
+          <svg id="rampSlopeSvg" viewBox="0 0 1280 430" role="img" aria-label="Lake McConaughy boat ramp slope chart"></svg>
+        </div>
+      </section>
+    </div>
+
+    <div class="tab-pane" id="trendsTab">
+      <section class="panel trend-panel">
+        <div class="trend-top">
+          <div>
+            <h2>Lake Elevation Trends</h2>
+            <div class="small-note">Trends use CNPPID reservoir readings and chart images. The 7-day and 30-day changes use the live CNPPID table; 1-day, 90-day, and current-year peak are estimated from the CNPPID one-month/one-year charts when direct DWEE data is blocked.</div>
+          </div>
+          <div class="chart-controls">
+            <button class="btn btn-primary" id="refreshTrendBtn">Refresh trends</button>
+          </div>
+        </div>
+
+        <div class="trend-grid">
+          <div class="trend-metric"><div class="trend-label">1-day change</div><div class="trend-value" id="trend1d">--</div><div class="trend-note" id="trend1dNote">--</div></div>
+          <div class="trend-metric"><div class="trend-label">7-day change</div><div class="trend-value" id="trend7d">--</div><div class="trend-note" id="trend7dNote">--</div></div>
+          <div class="trend-metric"><div class="trend-label">30-day change</div><div class="trend-value" id="trend30d">--</div><div class="trend-note" id="trend30dNote">--</div></div>
+          <div class="trend-metric"><div class="trend-label">90-day change</div><div class="trend-value" id="trend90d">--</div><div class="trend-note" id="trend90dNote">--</div></div>
+          <div class="trend-metric"><div class="trend-label">Below current-year peak</div><div class="trend-value" id="trendPeakDiff">--</div><div class="trend-note" id="trendPeakDiffNote">--</div></div>
+        </div>
+
+        <div class="trend-status" id="trendStatus">
+          Using CNPPID Reservoir/River Data and CNPPID chart images. DWEE blocks embedded chart display in this standalone dashboard.
+        </div>
+
+        <div class="trend-chart-wrap">
+          <svg id="lakeTrendSvg" viewBox="0 0 1100 470" role="img" aria-label="Lake McConaughy lake elevation trend"></svg>
+        </div>
+
+      </section>
+    </div>
+
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+    window.addEventListener("load", () => {
+      setTimeout(() => {
+        try{
+          if(window.lakeElevationTrendSeries) updateTrendChangeCardsFromSeries(window.lakeElevationTrendSeries);
+        }catch(e){}
+      }, 1200);
+    });
+
+</script>
+
+  <script>
+    const FULL_POOL = 3265;
+    const OPEN_BUFFER_FT = 3.0;
+    const LIMITED_BUFFER_FT = 0.0;
+    const AUTO_REFRESH_MINUTES = 15;
+
+    const ramps = [
+      {
+            "AreaName": "Omaha Beach",
+            "Latitude": 41.300017,
+            "Longitude": -101.986382,
+            "RampBottom": 3259.0,
+            "RampTop": 3262.0,
+            "TopLat": 41.300314,
+            "TopLon": -101.986277,
+            "Notes": ""
+      },
+      {
+            "AreaName": "Cedar Vue Lakeside",
+            "Latitude": 41.290941,
+            "Longitude": -101.931848,
+            "RampBottom": 3233.0,
+            "RampTop": 3270.0,
+            "TopLat": 41.292012,
+            "TopLon": -101.930894,
+            "Notes": ""
+      },
+      {
+            "AreaName": "Cedar Vue Bayside",
+            "Latitude": 41.291899,
+            "Longitude": -101.920582,
+            "RampBottom": 3236.0,
+            "RampTop": 3264.0,
+            "TopLat": 41.291192,
+            "TopLon": -101.920822,
+            "Notes": ""
+      },
+      {
+            "AreaName": "Otter Creek Flume",
+            "Latitude": 41.297708,
+            "Longitude": -101.92566,
+            "RampBottom": 3253.0,
+            "RampTop": 3269.0,
+            "TopLat": 41.297872,
+            "TopLon": -101.925272,
+            "Notes": ""
+      },
+      {
+            "AreaName": "Otter Creek",
+            "Latitude": 41.294393,
+            "Longitude": -101.921311,
+            "RampBottom": 3240.0,
+            "RampTop": 3259.0,
+            "TopLat": 41.295107,
+            "TopLon": -101.92073,
+            "Notes": ""
+      },
+      {
+            "AreaName": "Lemoyne Bay - Bayside Ramp",
+            "Latitude": 41.271837,
+            "Longitude": -101.818019,
+            "RampBottom": 3243.0,
+            "RampTop": 3273.0,
+            "TopLat": 41.271638,
+            "TopLon": -101.816991,
+            "Notes": ""
+      },
+      {
+            "AreaName": "Lemoyne - low water",
+            "Latitude": 41.269164,
+            "Longitude": -101.816491,
+            "RampBottom": 3228.0,
+            "RampTop": 3258.0,
+            "TopLat": 41.27013,
+            "TopLon": -101.815732,
+            "Notes": ""
+      },
+      {
+            "AreaName": "Sandy Beach",
+            "Latitude": 41.257272,
+            "Longitude": -101.767338,
+            "RampBottom": 3262.0,
+            "RampTop": 3278.0,
+            "TopLat": 41.257222,
+            "TopLon": -101.767962,
+            "Notes": "Top Elevation was missed. May need to re-collect eventually"
+      },
+      {
+            "AreaName": "Arthur Bay",
+            "Latitude": 41.250619,
+            "Longitude": -101.729475,
+            "RampBottom": 3243.0,
+            "RampTop": 3270.0,
+            "TopLat": 41.252125,
+            "TopLon": -101.728804,
+            "Notes": ""
+      },
+      {
+            "AreaName": "Martin Bay High Water",
+            "Latitude": 41.250249,
+            "Longitude": -101.68862,
+            "RampBottom": 3234.0,
+            "RampTop": 3270.0,
+            "TopLat": 41.250951,
+            "TopLon": -101.687604,
+            "Notes": ""
+      },
+      {
+            "AreaName": "Martin Bay Low Water",
+            "Latitude": 41.237381,
+            "Longitude": -101.678139,
+            "RampBottom": 3216.0,
+            "RampTop": 3247.0,
+            "TopLat": 41.238449,
+            "TopLon": -101.677391,
+            "Notes": "Not the bottom, just the lowest point measured"
+      },
+      {
+            "AreaName": "Spillway Bay - Front",
+            "Latitude": 41.204487,
+            "Longitude": -101.669977,
+            "RampBottom": 3234.0,
+            "RampTop": 3261.0,
+            "TopLat": 41.20404,
+            "TopLon": -101.669128,
+            "Notes": ""
+      },
+      {
+            "AreaName": "Spillway Bay - Back Ramp",
+            "Latitude": 41.2034,
+            "Longitude": -101.669678,
+            "RampBottom": 3244.0,
+            "RampTop": 3272.0,
+            "TopLat": 41.20285,
+            "TopLon": -101.669297,
+            "Notes": ""
+      },
+      {
+            "AreaName": "Diver's Bay",
+            "Latitude": 41.206229,
+            "Longitude": -101.679156,
+            "RampBottom": 3211.0,
+            "RampTop": 3248.0,
+            "TopLat": 41.205145,
+            "TopLon": -101.678199,
+            "Notes": "Not the bottom, just the lowest point measured"
+      },
+      {
+            "AreaName": "Van's Lakeview",
+            "Latitude": 41.237753,
+            "Longitude": -101.848809,
+            "RampBottom": 3249.0,
+            "RampTop": 3268.0,
+            "TopLat": 41.238033,
+            "TopLon": -101.849508,
+            "Notes": ""
+      },
+      {
+            "AreaName": "Eagle Canyon",
+            "Latitude": 41.270484,
+            "Longitude": -101.955439,
+            "RampBottom": 3257.0,
+            "RampTop": 3271.0,
+            "TopLat": 41.269916,
+            "TopLon": -101.955452,
+            "Notes": ""
+      }
+];
+    function sortRampsUpstreamToDownstream(){
+      ramps.sort((a,b) => {
+        const ax = Number(a.Longitude);
+        const bx = Number(b.Longitude);
+        if(Number.isFinite(ax) && Number.isFinite(bx) && ax !== bx) return ax - bx; // west to east
+        return String(a.AreaName || "").localeCompare(String(b.AreaName || ""));
+      });
+    }
+    sortRampsUpstreamToDownstream();
+
+
+    const map = L.map("map", { zoomControl:false });
+    const homeBounds = L.latLngBounds(
+      [41.185, -102.045],
+      [41.315, -101.660]
+    );
+    map.fitBounds(homeBounds, {padding:[18,18]});
+    L.control.zoom({ position:"topright" }).addTo(map);
+
+    map.createPane("rampRedPane");
+    map.getPane("rampRedPane").classList.add("ramp-red-pane");
+    map.createPane("rampYellowPane");
+    map.getPane("rampYellowPane").classList.add("ramp-yellow-pane");
+    map.createPane("rampGreenPane");
+    map.getPane("rampGreenPane").classList.add("ramp-green-pane");
+
+
+    const HomeControl = L.Control.extend({
+      options:{position:"topright"},
+      onAdd:function(){
+        const div = L.DomUtil.create("div", "home-control");
+        div.innerHTML = "⌂";
+        div.title = "Home";
+        L.DomEvent.disableClickPropagation(div);
+        L.DomEvent.on(div, "click", function(){
+          map.fitBounds(homeBounds, {padding:[18,18]});
+        });
+        return div;
+      }
+    });
+    map.addControl(new HomeControl());
+
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+      maxZoom:19,
+      attribution:"Esri World Imagery"
+    }).addTo(map);
+
+    const contourLayerGroup = L.layerGroup().addTo(map);
+    const contourLabelGroup = L.layerGroup().addTo(map);
+    const rampLayer = L.layerGroup().addTo(map);
+
+    map.on("zoomend", refreshContourLabelsForZoom);
+
+    function classifyRamp(r, lakeElevation){
+      const depthAboveBottom = lakeElevation - r.RampBottom;
+      const depthAboveTop = lakeElevation - r.RampTop;
+
+      // Too low to reach the ramp.
+      if(depthAboveBottom < LIMITED_BUFFER_FT){
+        return {
+          key:"closed",
+          label:"Closed — Low Water",
+          shortLabel:"Closed",
+          reason:"Lake elevation is below the ramp bottom.",
+          icon:"×",
+          color:"#ef4f55"
+        };
+      }
+
+      // Water is high enough to submerge the ramp top by 3+ ft.
+      if(depthAboveTop >= 3){
+        return {
+          key:"closed",
+          label:"Closed — Overtopped",
+          shortLabel:"Overtopped",
+          reason:"Water is 3+ ft above the top of the ramp, so the ramp may be underwater and unsafe/difficult to locate.",
+          icon:"×",
+          color:"#ef4f55"
+        };
+      }
+
+      // Water is above the ramp top, but less than 3 ft.
+      if(depthAboveTop > 0){
+        return {
+          key:"limited",
+          label:"Limited — High Water",
+          shortLabel:"High Water",
+          reason:"Water is above the ramp top, but less than 3 ft over the top.",
+          icon:"!",
+          color:"#f4bc3f"
+        };
+      }
+
+      // Standard low-water launch rules.
+      if(depthAboveBottom >= OPEN_BUFFER_FT){
+        return {
+          key:"open",
+          label:"Open",
+          shortLabel:"Open",
+          reason:"Water is at least 3 ft above the ramp bottom and below the ramp top.",
+          icon:"✓",
+          color:"#20c978"
+        };
+      }
+
+      return {
+        key:"limited",
+        label:"Limited — Shallow",
+        shortLabel:"Limited",
+        reason:"Water is above the ramp bottom, but less than 3 ft deep at the ramp bottom.",
+        icon:"!",
+        color:"#f4bc3f"
+      };
+    }
+
+
+    function rampStatusColor(status){
+      if(!status) return "#9aa3b2";
+      if(status.key === "open") return "#20c978";
+      if(status.key === "limited") return "#f4bc3f";
+      if(status.key === "closed") return "#ef4f55";
+      return "#9aa3b2";
+    }
+
+    function markerPaneForStatus(key){
+      if(key === "open") return "rampGreenPane";
+      if(key === "limited") return "rampYellowPane";
+      return "rampRedPane";
+    }
+
+    function statusClass(key){
+      return key === "open" ? "status-open" : key === "limited" ? "status-limited" : "status-closed";
+    }
+
+    function shortName(name){
+      return name.replace("Lake McConaughy SRA - ", "");
+    }
+
+    function arcgisToGeoJSONFeature(feature){
+      const attrs = feature.attributes || {};
+      const geom = feature.geometry || {};
+      let geometry = null;
+
+      if(geom.paths){
+        geometry = {
+          type: "MultiLineString",
+          coordinates: geom.paths.map(path => path.map(pt => [pt[0], pt[1]]))
+        };
+      }
+      return { type:"Feature", properties:attrs, geometry };
+    }
+
+    function flattenCoords(coords, output=[]){
+      if(!coords) return output;
+      if(typeof coords[0] === "number" && typeof coords[1] === "number"){
+        output.push(coords);
+      } else {
+        coords.forEach(c => flattenCoords(c, output));
+      }
+      return output;
+    }
+
+    function isLakeMcConaughyContour(feature){
+      const pts = flattenCoords(feature.geometry && feature.geometry.coordinates);
+      if(!pts.length) return false;
+      const meanLon = pts.reduce((sum,p)=>sum+p[0],0) / pts.length;
+      const meanLat = pts.reduce((sum,p)=>sum+p[1],0) / pts.length;
+
+      // Spatial filter keeps Lake McConaughy and removes Lake Ogallala east/right of the dam.
+      
+      // Remove detached contour groups north/east of the main lake body.
+      // Keep only contours whose centroid falls within the main Lake McConaughy basin.
+      return (
+        meanLon > -102.05 &&
+        meanLon < -101.69 &&
+        meanLat > 41.19 &&
+        meanLat < 41.305
+      );
+    
+    }
+
+    function representativePoint(feature){
+      const pts = flattenCoords(feature.geometry && feature.geometry.coordinates);
+      if(!pts.length) return null;
+
+      // Use middle coordinate so the label appears on top of the line.
+      const mid = pts[Math.floor(pts.length / 2)];
+      return [mid[1], mid[0]];
+    }
+
+
+    function visibleLabelPointsForFeature(feature){
+      const geom = feature.geometry || {};
+      const z = map.getZoom();
+      const bounds = map.getBounds().pad(0.08);
+      const points = [];
+
+      function addCoord(coord){
+        if(!coord || coord.length < 2) return;
+        const latlng = L.latLng(coord[1], coord[0]);
+        if(bounds.contains(latlng)){
+          points.push([coord[1], coord[0]]);
+        }
+      }
+
+      if(geom.type === "MultiLineString" && Array.isArray(geom.coordinates)){
+        geom.coordinates.forEach(path => {
+          if(!Array.isArray(path) || path.length < 2) return;
+
+          // Keep only visible coordinates first. This makes labels appear for contours
+          // whose true midpoint is outside the current map view.
+          const visible = path.filter(coord => bounds.contains(L.latLng(coord[1], coord[0])));
+          if(!visible.length) return;
+
+          if(z >= 16){
+            // Very close: label several points on every visible contour path.
+            const step = Math.max(2, Math.floor(visible.length / 6));
+            for(let i = Math.floor(step / 2); i < visible.length; i += step){
+              addCoord(visible[i]);
+            }
+          } else if(z >= 15){
+            const step = Math.max(3, Math.floor(visible.length / 4));
+            for(let i = Math.floor(step / 2); i < visible.length; i += step){
+              addCoord(visible[i]);
+            }
+          } else if(z >= 14){
+            addCoord(visible[Math.floor(visible.length * 0.33)]);
+            addCoord(visible[Math.floor(visible.length * 0.66)]);
+          } else {
+            addCoord(visible[Math.floor(visible.length / 2)]);
+          }
+        });
+      }
+
+      if(!points.length){
+        const p = representativePoint(feature);
+        if(p && bounds.contains(L.latLng(p[0], p[1]))) points.push(p);
+      }
+
+      return points;
+    }
+
+    let currentContourFeatures = [];
+    let currentContourElevation = null;
+
+    function labelSettingsForZoom(){
+      const z = map.getZoom();
+
+      /*
+        Dynamic label density:
+        - zoomed out: major depth labels only
+        - middle zoom: more 5/10-ft labels
+        - close zoom: label every visible contour segment
+      */
+      if(z <= 10) return { interval:25, minPixelSpacing:130, maxLabels:80, visibleOnly:false, everySegment:false };
+      if(z === 11) return { interval:20, minPixelSpacing:105, maxLabels:120, visibleOnly:false, everySegment:false };
+      if(z === 12) return { interval:10, minPixelSpacing:80, maxLabels:180, visibleOnly:false, everySegment:false };
+      if(z === 13) return { interval:5, minPixelSpacing:55, maxLabels:260, visibleOnly:true, everySegment:false };
+      if(z === 14) return { interval:5, minPixelSpacing:24, maxLabels:500, visibleOnly:true, everySegment:true };
+      if(z >= 15) return { interval:1, minPixelSpacing:0, maxLabels:2500, visibleOnly:true, everySegment:true };
+      return { interval:10, minPixelSpacing:90, maxLabels:160, visibleOnly:false, everySegment:false };
+    }
+
+    function addContourDepthLabels(features, currentElevation){
+      contourLabelGroup.clearLayers();
+
+      const settings = labelSettingsForZoom();
+      const placedPixels = [];
+      let placedCount = 0;
+
+      features.forEach(feature => {
+        if(placedCount >= settings.maxLabels) return;
+
+        const p = feature.properties || {};
+        const elev = Number(p.Elevation ?? p.ELEVATION);
+        if(!Number.isFinite(elev)) return;
+
+        const rawDepth = currentElevation - elev;
+        if(rawDepth < 0) return;
+
+        const depthLabel = Math.round(rawDepth);
+
+        // At close zooms this interval becomes 1, so every visible contour can label.
+        if(depthLabel % settings.interval !== 0) return;
+
+        const labelPoints = visibleLabelPointsForFeature(feature);
+        labelPoints.forEach(point => {
+          if(placedCount >= settings.maxLabels || !point) return;
+
+          if(settings.minPixelSpacing > 0){
+            const px = map.latLngToLayerPoint(point);
+            const tooClose = placedPixels.some(existing => existing.distanceTo(px) < settings.minPixelSpacing);
+            if(tooClose) return;
+            placedPixels.push(px);
+          }
+
+          placedCount++;
+
+          L.tooltip({
+            permanent:false,
+            direction:"center",
+            className:"contour-depth-label",
+            opacity:1
+          })
+          .setLatLng(point)
+          .setContent(String(depthLabel))
+          .addTo(contourLabelGroup);
+        });
+      });
+
+      const status = document.getElementById("contourStatus");
+      if(status && currentContourFeatures.length){
+        status.innerHTML = "<strong>Contours:</strong> Depth labels increase as you zoom in";
+      }
+    }
+
+    function refreshContourLabelsForZoom(){
+      if(currentContourFeatures.length && currentContourElevation !== null){
+        addContourDepthLabels(currentContourFeatures, currentContourElevation);
+      }
+    }
+
+
+    function setTrendValueSafe(possibleIds, value, suffix=""){
+      const text = (Number.isFinite(value))
+        ? `${value > 0 ? "+" : ""}${value.toFixed(2)}${suffix}`
+        : "—";
+      possibleIds.forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.textContent = text;
+      });
+    }
+
+    function updateTrendChangeCardsFromSeries(series){
+      if(!Array.isArray(series) || series.length < 2) return;
+      const clean = series
+        .map(d => ({
+          date: d.date || d.Date || d.x,
+          elevation: Number(d.elevation ?? d.Elevation ?? d.y ?? d.value)
+        }))
+        .filter(d => Number.isFinite(d.elevation))
+        .sort((a,b) => new Date(a.date) - new Date(b.date));
+
+      if(clean.length < 2) return;
+
+      const latest = clean[clean.length - 1];
+      const prev = clean[clean.length - 2];
+      const oneDay = latest.elevation - prev.elevation;
+
+      setTrendValueSafe(
+        ["trendOneDayChange","oneDayChange","trend1DayChange","change1Day","oneDayChangeValue","trendChange1Day"],
+        oneDay,
+        " ft"
+      );
+
+      // Optional related cards, only updates IDs that exist.
+      if(clean.length >= 8){
+        const week = latest.elevation - clean[clean.length - 8].elevation;
+        setTrendValueSafe(["trendSevenDayChange","sevenDayChange","trend7DayChange","change7Day"], week, " ft");
+      }
+      if(clean.length >= 31){
+        const month = latest.elevation - clean[clean.length - 31].elevation;
+        setTrendValueSafe(["trendThirtyDayChange","thirtyDayChange","trend30DayChange","change30Day"], month, " ft");
+      }
+    }
+
+    async function loadLakeContours(currentElevation){
+      const status = document.getElementById("contourStatus");
+      if(status) status.innerHTML = "<strong>Contours:</strong> loading depth labels...";
+
+      contourLayerGroup.clearLayers();
+      contourLabelGroup.clearLayers();
+
+      const base = "https://services5.arcgis.com/IOshH1zLrIieqrNk/arcgis/rest/services/LakeContours/FeatureServer/0/query";
+      const allFeatures = [];
+
+      try{
+        let offset = 0;
+        let keepGoing = true;
+
+        while(keepGoing && offset < 5000){
+          const params = new URLSearchParams({
+            where: "Elevation <= " + currentElevation,
+            outFields: "*",
+            returnGeometry: "true",
+            geometry: "-102.08,41.18,-101.665,41.33",
+            geometryType: "esriGeometryEnvelope",
+            spatialRel: "esriSpatialRelIntersects",
+            inSR: "4326",
+            outSR: "4326",
+            f: "json",
+            resultOffset: String(offset),
+            resultRecordCount: "1000"
+          });
+
+          const response = await fetch(base + "?" + params.toString());
+          const data = await response.json();
+
+          if(data.error){
+            console.warn("Contour query error", data.error);
+            if(status) status.innerHTML = "<strong>Contours:</strong> query failed";
+            return;
+          }
+
+          const batch = data.features || [];
+          allFeatures.push(...batch);
+
+          keepGoing = data.exceededTransferLimit === true && batch.length > 0;
+          offset += batch.length || 1000;
+          if(batch.length === 0) keepGoing = false;
+        }
+
+        const features = allFeatures
+          .map(arcgisToGeoJSONFeature)
+          .filter(f => f.geometry)
+          .filter(isLakeMcConaughyContour);
+
+        if(!features.length){
+          if(status) status.innerHTML = "<strong>Contours:</strong> no Lake McConaughy contours found";
+          return;
+        }
+
+        L.geoJSON({type:"FeatureCollection", features}, {
+          style: function(feature){
+            const elev = Number((feature.properties || {}).Elevation);
+            const depth = currentElevation - elev;
+            return {
+              color: depth <= 5 ? "#ffffff" : "#58d7ff",
+              weight: depth <= 5 ? 2.2 : 1.15,
+              opacity: depth <= 5 ? 0.95 : 0.76
+            };
+          },
+          onEachFeature:function(feature, layer){
+            const elev = Number((feature.properties || {}).Elevation);
+            const depth = currentElevation - elev;
+            if(Number.isFinite(depth)){
+              layer.bindTooltip(`${Math.round(depth)} ft deep<br>Contour elevation ${elev.toFixed(0)} ft`, {sticky:true});
+            }
+          }
+        }).addTo(contourLayerGroup);
+
+        currentContourFeatures = features;
+        currentContourElevation = currentElevation;
+        addContourDepthLabels(features, currentElevation);
+
+        contourLayerGroup.bringToBack();
+        contourLabelGroup.bringToFront();
+        rampLayer.bringToFront();
+
+        if(status){ status.innerHTML = "<strong>Contours:</strong> Depth labels increase as you zoom in"; }
+      } catch(err){
+        console.warn("Contour load failed", err);
+        if(status) status.innerHTML = "<strong>Contours:</strong> could not load";
+      }
+    }
+
+
+    function updateRampElevationChartStatusColors(){
+      try{
+        const chart = window.rampElevationChart || window.rampChart || window.rampElevChart;
+        const lakeElevation = Number(document.getElementById("lakeElevationInput")?.value);
+        if(!chart || !Number.isFinite(lakeElevation)) return;
+        const labels = chart.data?.labels || [];
+        const colorByName = {};
+        (window.ramps || ramps || []).forEach(r => {
+          colorByName[r.AreaName] = rampStatusColor(classifyRamp(r, lakeElevation));
+        });
+        chart.data.datasets.forEach(ds => {
+          if((ds.label || "").toLowerCase().includes("ramp")){
+            ds.backgroundColor = labels.map(name => colorByName[name] || "#9aa3b2");
+            ds.borderColor = labels.map(name => colorByName[name] || "#9aa3b2");
+          }
+        });
+        chart.update();
+      }catch(e){}
+    }
+
+    function render(){
+      const lakeElevation = Number(document.getElementById("lakeElevationInput").value);
+      document.getElementById("lakeElevationText").textContent = lakeElevation.toFixed(1);
+
+      const evaluated = ramps.map(r => {
+        const depth = lakeElevation - r.RampBottom;
+        return { ...r, Depth:depth, TopDepth:lakeElevation - r.RampTop, Status:classifyRamp(r, lakeElevation) };
+      }).sort((a,b) => b.Depth - a.Depth);
+
+      const open = evaluated.filter(r => r.Status.key === "open");
+      const limited = evaluated.filter(r => r.Status.key === "limited");
+      const closed = evaluated.filter(r => r.Status.key === "closed");
+      const overtoppedClosed = closed.filter(r => r.TopDepth >= 3);
+      const lowWaterClosed = closed.filter(r => r.Depth < 0);
+      const usable = open.length + limited.length;
+
+      document.getElementById("usableText").textContent = usable;
+      document.getElementById("totalText").textContent = ramps.length;
+      document.getElementById("openCountTitle").textContent = `(${open.length})`;
+      document.getElementById("limitedCountTitle").textContent = `(${limited.length})`;
+      document.getElementById("closedCountTitle").textContent = `(${closed.length})`;
+      document.getElementById("mapOpenCount").textContent = open.length;
+      document.getElementById("mapLimitedCount").textContent = limited.length;
+      document.getElementById("mapClosedCount").textContent = closed.length;
+      const overtopSummary = document.getElementById("overtopSummary");
+      if(overtopSummary){
+        if(overtoppedClosed.length){
+          overtopSummary.textContent = `${overtoppedClosed.length} ramp(s) closed because water is 3+ ft above the ramp top.`;
+        } else {
+          overtopSummary.textContent = "No ramps are currently closed due to high water overtopping the ramp top.";
+        }
+      }
+      updateRampElevationChartStatusColors();
+      if(window.lakeElevationTrendSeries) updateTrendChangeCardsFromSeries(window.lakeElevationTrendSeries);
+
+      const overall = document.getElementById("overallStatus");
+      let overallKey = "closed";
+      let overallText = "MOSTLY CLOSED";
+      if(open.length >= 3){ overallKey = "open"; overallText = "OPEN"; }
+      else if(usable > 0){ overallKey = "limited"; overallText = "LIMITED"; }
+      overall.textContent = overallText;
+      overall.className = `status-badge ${statusClass(overallKey)}`;
+
+      const best = evaluated[0];
+      document.getElementById("bestRampName").textContent = shortName(best.AreaName);
+      document.getElementById("bestRampDepth").textContent = `${best.Depth >= 0 ? "+" : ""}${best.Depth.toFixed(1)} ft`;
+
+      renderGroups(open, limited, closed);
+      renderMap(evaluated, lakeElevation);
+      loadLakeContours(lakeElevation);
+      updateTimestamp();
+    }
+
+    function rampCard(r, index){
+      return `
+        <div class="ramp-card" onclick="zoomTo(${r.Latitude}, ${r.Longitude})">
+          <div class="ramp-name">${index ? index + ". " : ""}${shortName(r.AreaName)}</div>
+          <div class="ramp-bottom-row">
+            <div class="ramp-depth ${r.Status.key}">${r.Depth >= 0 ? "+" : ""}${r.Depth.toFixed(1)} ft</div>
+            <div class="mini-status ${r.Status.key}">${r.Status.shortLabel || r.Status.label}</div>
+          </div>
+          ${r.TopDepth >= 3 ? `<div class="small-note" style="color:#ff9a9e;margin-top:5px;">Overtopped: ${r.TopDepth.toFixed(1)} ft above ramp top</div>` : ""}
+        </div>
+      `;
+    }
+
+    function renderGroups(open, limited, closed){
+      document.getElementById("openGroup").innerHTML =
+        open.length ? open.map((r,i)=>rampCard(r,i+1)).join("") : `<div class="empty">No ramps currently open.</div>`;
+
+      document.getElementById("limitedGroup").innerHTML =
+        limited.length ? limited.map((r,i)=>rampCard(r,i+1)).join("") : `<div class="empty">No ramps currently in this category.</div>`;
+
+      document.getElementById("closedGroup").innerHTML =
+        closed.length ? closed.map((r,i)=>rampCard(r, open.length + limited.length + i + 1)).join("") : `<div class="empty">No closed ramps.</div>`;
+    }
+
+    function labelDirectionForRamp(name){
+      const n = String(name || "").toLowerCase();
+      if(n.includes("spillway")) return {direction:"left", offset:L.point(-16,0)};
+      if(n.includes("diver")) return {direction:"left", offset:L.point(-16,-8)};
+      if(n.includes("martin bay low")) return {direction:"left", offset:L.point(-16,18)};
+      if(n.includes("martin bay high")) return {direction:"right", offset:L.point(16,-14)};
+      if(n.includes("arthur")) return {direction:"right", offset:L.point(16,-14)};
+      if(n.includes("sandy")) return {direction:"right", offset:L.point(16,-14)};
+      if(n.includes("lemoyne")) return {direction:"right", offset:L.point(16,-12)};
+      if(n.includes("vans")) return {direction:"right", offset:L.point(16,-12)};
+      if(n.includes("otter creek flume")) return {direction:"bottom", offset:L.point(0,18)};
+      if(n === "otter creek") return {direction:"bottom", offset:L.point(0,18)};
+      if(n.includes("cedar vue")) return {direction:"top", offset:L.point(0,-18)};
+      if(n.includes("eagle")) return {direction:"bottom", offset:L.point(0,18)};
+      if(n.includes("omaha")) return {direction:"right", offset:L.point(16,-12)};
+      return {direction:"right", offset:L.point(16,0)};
+    }
+
+    function boatGlyph(){
+      return `<svg width="17" height="17" viewBox="0 0 64 64" aria-hidden="true">
+        <path d="M13 35h38l-6 12H20L13 35Z" fill="white"/>
+        <path d="M25 31V13l18 18H25Z" fill="white"/>
+        <path d="M11 51c5 3 9 3 14 0 5 3 9 3 14 0 5 3 9 3 14 0" fill="none" stroke="white" stroke-width="5" stroke-linecap="round"/>
+      </svg>`;
+    }
+
+    function renderMap(evaluated, lakeElevation){
+      rampLayer.clearLayers();
+
+      // Draw closed first, then limited, then open so green icons appear on top.
+      const ordered = [...evaluated].sort((a,b) => {
+        const rank = {closed:0, limited:1, open:2};
+        return (rank[a.Status.key] ?? 0) - (rank[b.Status.key] ?? 0);
+      });
+
+      ordered.forEach(r => {
+        const marker = L.marker([r.Latitude, r.Longitude], {
+          pane: markerPaneForStatus(r.Status.key),
+          zIndexOffset: r.Status.key === "open" ? 3000 : (r.Status.key === "limited" ? 2000 : 1000),
+          icon: L.divIcon({
+            className:"",
+            html:`<div class="boat-marker" style="background:${r.Status.color}">${boatGlyph()}</div>`,
+            iconSize:[28,28],
+            iconAnchor:[14,14]
+          })
+        }).addTo(rampLayer);
+
+        marker.bindTooltip(`
+          <b>${shortName(r.AreaName)}</b><br>
+          Status: ${r.Status.label}<br>
+          ${r.Status.reason || ""}<br>
+          Ramp bottom: ${r.RampBottom.toFixed(1)} ft<br>
+          Ramp top: ${r.RampTop.toFixed(1)} ft
+        `, {
+          permanent:false,
+          direction:"top",
+          offset:L.point(0,-12),
+          className:"ramp-label",
+          opacity:1
+        });
+
+        marker.bindPopup(`
+          <b>${shortName(r.AreaName)}</b><br>
+          Status: <b>${r.Status.label}</b><br>
+          Reason: ${r.Status.reason || ""}<br>
+          Lake elevation: ${lakeElevation.toFixed(1)} ft<br>
+          Ramp bottom: ${r.RampBottom.toFixed(1)} ft<br>
+          Ramp top: ${r.RampTop.toFixed(1)} ft<br>
+          Water above ramp bottom: ${r.Depth.toFixed(1)} ft<br>
+          Water above ramp top: ${r.TopDepth.toFixed(1)} ft<br>
+          Note: ${r.Status.reason || ""}
+        `);
+      });
+
+      setTimeout(() => {
+        try{
+          map.getPane("rampRedPane").style.zIndex = 760;
+          map.getPane("rampYellowPane").style.zIndex = 770;
+          map.getPane("rampGreenPane").style.zIndex = 780;
+          rampLayer.bringToFront();
+        }catch(e){}
+      }, 0);
+    }
+
+    function zoomTo(lat, lng){
+      map.setView([lat, lng], 15);
+      window.scrollTo({top:0, behavior:"smooth"});
+    }
+
+    function updateTimestamp(){
+      const now = new Date();
+      document.getElementById("lastUpdated").textContent =
+        "Updated " + now.toLocaleString([], {month:"short", day:"numeric", hour:"numeric", minute:"2-digit"});
+    }
+
+    async function refreshFromLiveSource(){
+      render();
+    }
+
+
+
+    const CNPPID_LIVE_SOURCE_URL = "https://cnppid.com/lake-river-data";
+
+    function plausibleElevation(n){ return Number.isFinite(n) && n >= 3150 && n <= 3275; }
+
+    function parseMcConaughyData(text){
+      const clean = String(text || "")
+        .replace(/&nbsp;/gi, " ")
+        .replace(/<[^>]*>/g, " ")
+        .replace(/,/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      // CNPPID page/table format:
+      // Lake McConaughy 3217.5 = 641800ac-ft (36.8% capacity) 3218.3 3225.1 3230.9
+      const tableMatch = clean.match(/Lake\s+McConaughy\s+(3[12]\d{2}(?:\.\d+)?)\s*=\s*([0-9]+)\s*ac-?ft\s*\(([0-9]+(?:\.\d+)?)%\s*capacity\)\s+(3[12]\d{2}(?:\.\d+)?)\s+(3[12]\d{2}(?:\.\d+)?)\s+(3[12]\d{2}(?:\.\d+)?)/i);
+      if(tableMatch){
+        const elevation = Number(tableMatch[1]);
+        const storage = Number(tableMatch[2]);
+        const percentFull = Number(tableMatch[3]);
+        const weekAgo = Number(tableMatch[4]);
+        const monthAgo = Number(tableMatch[5]);
+        const yearAgo = Number(tableMatch[6]);
+        if(plausibleElevation(elevation)){
+          return {elevation, storage, percentFull, weekAgo, monthAgo, yearAgo};
+        }
+      }
+
+      const focusedIndex = clean.toLowerCase().indexOf("lake mcconaughy");
+      const focused = focusedIndex >= 0 ? clean.slice(focusedIndex, focusedIndex + 1200) : clean;
+      const candidates = [...focused.matchAll(/\b(31[5-9]\d(?:\.\d+)?|32[0-6]\d(?:\.\d+)?|327[0-5](?:\.\d+)?)\b/g)]
+        .map(m => Number(m[1]))
+        .filter(plausibleElevation)
+        .filter(v => Math.abs(v - 3265) > 0.05);
+
+      if(!candidates.length) return null;
+      return {elevation:candidates[0], storage:null, percentFull:null};
+    }
+
+    async function fetchTextWithTimeout(url, timeoutMs=6000){
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try{
+        const response = await fetch(url, {cache:"no-store", signal:controller.signal});
+        if(!response.ok) throw new Error("HTTP " + response.status);
+        const contentType = response.headers.get("content-type") || "";
+        if(contentType.includes("application/json")){
+          const json = await response.json();
+          return json.contents || json.body || JSON.stringify(json);
+        }
+        return await response.text();
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function fetchCnppidLiveElevation(){
+      const urls = [
+        // Jina Reader is usually the quickest CORS-readable option for this static CNPPID page.
+        "https://r.jina.ai/" + CNPPID_LIVE_SOURCE_URL,
+        "https://api.allorigins.win/raw?url=" + encodeURIComponent(CNPPID_LIVE_SOURCE_URL),
+        "https://api.allorigins.win/get?url=" + encodeURIComponent(CNPPID_LIVE_SOURCE_URL),
+        "https://corsproxy.io/?" + encodeURIComponent(CNPPID_LIVE_SOURCE_URL)
+      ];
+
+      for(const url of urls){
+        try{
+          const text = await fetchTextWithTimeout(url, 6000);
+          const data = parseMcConaughyData(text);
+          if(data && plausibleElevation(data.elevation)){
+            return {...data, source:"CNPPID Reservoir/River Data"};
+          }
+        }catch(err){
+          console.warn("CNPPID elevation read failed:", err.message);
+        }
+      }
+      // Last fallback keeps dashboard usable when browser/proxy access is blocked.
+      const typedElevation = Number(document.getElementById("lakeElevationInput")?.value);
+      const safeElevation = (Number.isFinite(typedElevation) && typedElevation > 3000 && typedElevation < 3265)
+        ? typedElevation
+        : 3217.5;
+      return {elevation:safeElevation, storage:null, percentFull:null, source:"displayed/manual value"};
+    }
+
+    function updateOptionalStorageDisplay(live){
+      const percentEl = document.getElementById("percentFullValue") || document.getElementById("reservoirPercentFull");
+      if(percentEl && live && Number.isFinite(live.percentFull)){
+        percentEl.textContent = `${live.percentFull.toFixed(1)}%`;
+      }
+    }
+
+    async function refreshElevationFromCow(){
+      const status = document.getElementById("liveElevationStatus");
+      const btn = document.getElementById("refreshElevationBtn");
+      const gbtn = document.getElementById("refreshGraphicElevationBtn");
+      const buttons = [btn, gbtn].filter(Boolean);
+
+      buttons.forEach(b => { b.disabled = true; b.textContent = "Checking..."; });
+      if(status) status.textContent = "Checking CNPPID Reservoir/River Data...";
+
+      try{
+        const live = await fetchCnppidLiveElevation();
+        if(live && plausibleElevation(live.elevation)){
+          document.getElementById("lakeElevationInput").value = live.elevation.toFixed(1);
+          updateOptionalStorageDisplay(live);
+          const pct = Number.isFinite(live.percentFull) ? ` (${live.percentFull.toFixed(1)}% full)` : "";
+          if(status){
+            status.textContent = live.source === "displayed/manual value"
+              ? `Live CNPPID read was blocked by the browser. Using displayed/manual elevation: ${live.elevation.toFixed(1)} ft.`
+              : `Live elevation updated from ${live.source}: ${live.elevation.toFixed(1)} ft${pct}`;
+          }
+        } else {
+          if(status) status.textContent = "Live CNPPID read was blocked by the browser. Using the displayed/manual elevation; dashboard calculations are still updated.";
+        }
+      } catch(err){
+        if(status) status.textContent = "Live CNPPID read was blocked by the browser. Using the displayed/manual elevation; dashboard calculations are still updated.";
+      } finally {
+        render();
+        renderRampGraphic();
+        if(typeof renderRampSlopeChart === "function") renderRampSlopeChart();
+        if(document.getElementById("trendsTab")?.classList.contains("active") && typeof refreshTrendData === "function") refreshTrendData();
+        buttons.forEach(b => { b.disabled = false; b.textContent = "Refresh current elevation"; });
+      }
+    }
+
+    function switchTab(tabId){
+  
+
+    const CNPPID_TREND_SOURCE_URL = "https://cnppid.com/lake-river-data";
+
+    function trendSvgEl(tag, attrs={}, text=""){
+      const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+      Object.entries(attrs).forEach(([k,v]) => el.setAttribute(k, v));
+      if(text !== "") el.textContent = text;
+      return el;
+    }
+
+    function trendSet(id, delta, note, estimated=false){
+      const el = document.getElementById(id);
+      const noteEl = document.getElementById(id + "Note");
+      if(!el) return;
+
+      if(!Number.isFinite(delta)){
+        el.textContent = "--";
+        el.className = "trend-value trend-flat";
+        if(noteEl) noteEl.textContent = note || "Not available";
+        return;
+      }
+
+      el.textContent = `${estimated ? "≈ " : ""}${delta >= 0 ? "+" : ""}${delta.toFixed(2)} ft`;
+      el.className = "trend-value " + (Math.abs(delta) < 0.05 ? "trend-flat" : (delta > 0 ? "trend-up" : "trend-down"));
+      if(noteEl) noteEl.textContent = note || "";
+    }
+
+    async function fetchCnppidTrendText(){
+      try{
+        return await fetchTextWithTimeout("https://r.jina.ai/" + CNPPID_TREND_SOURCE_URL, 4500);
+      }catch(e){
+        console.warn("CNPPID quick trend source failed:", e.message);
+        return "";
+      }
+    }
+
+    function parseCnppidTrendTable(text){
+      const clean = String(text || "")
+        .replace(/&nbsp;/gi, " ")
+        .replace(/<[^>]*>/g, " ")
+        .replace(/,/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      const dateMatch = clean.match(/Readings for ([A-Za-z]+,\s+[A-Za-z]+\s+\d{1,2},\s+\d{4})/i);
+      const readingDate = dateMatch ? dateMatch[1] : "latest CNPPID reading";
+
+      const m = clean.match(/Lake\s+McConaughy\s+(3[12]\d{2}(?:\.\d+)?)\s*=\s*([0-9]+)\s*ac-?ft\s*\(([0-9]+(?:\.\d+)?)%\s*capacity\)\s+(3[12]\d{2}(?:\.\d+)?)\s+(3[12]\d{2}(?:\.\d+)?)\s+(3[12]\d{2}(?:\.\d+)?)/i);
+      if(!m) return null;
+
+      return {
+        readingDate,
+        current:Number(m[1]),
+        storage:Number(m[2]),
+        percentFull:Number(m[3]),
+        weekAgo:Number(m[4]),
+        monthAgo:Number(m[5]),
+        yearAgo:Number(m[6])
+      };
+    }
+
+    function fallbackCnppidTrendData(){
+      const current = Number(document.getElementById("lakeElevationInput")?.value) || 3217.5;
+      return {
+        readingDate:"displayed/manual elevation",
+        current:current,
+        storage:null,
+        percentFull:null,
+        weekAgo:3218.3,
+        monthAgo:3225.1,
+        yearAgo:3230.9
+      };
+    }
+
+    function drawTrendChartFromCnppid(data){
+      const svg = document.getElementById("lakeTrendSvg");
+      if(!svg) return;
+      while(svg.firstChild) svg.removeChild(svg.firstChild);
+
+      const current = data.current;
+      const yearPeakEstimate = Math.max(3231.1, current, data.monthAgo, data.weekAgo);
+      const today = new Date();
+      const dateDaysAgo = days => {
+        const d = new Date(today);
+        d.setDate(d.getDate() - days);
+        return d;
+      };
+      const points = [
+        {label:"1 yr ago", date:dateDaysAgo(365), elevation:data.yearAgo},
+        {label:"Spring peak", date:new Date(today.getFullYear(), 4, 15), elevation:yearPeakEstimate},
+        {label:"30 days ago", date:dateDaysAgo(30), elevation:data.monthAgo},
+        {label:"7 days ago", date:dateDaysAgo(7), elevation:data.weekAgo},
+        {label:"Current", date:today, elevation:current}
+      ];
+
+      const W=1100,H=470,L=82,R=35,T=54,B=72;
+      const ymin = Math.floor(Math.min(...points.map(p=>p.elevation)) - 1);
+      const ymax = Math.ceil(Math.max(...points.map(p=>p.elevation)) + 1);
+      const x = i => L + i*(W-L-R)/(points.length-1);
+      const y = v => T + (ymax-v)*(H-T-B)/(ymax-ymin || 1);
+
+      svg.appendChild(trendSvgEl("rect",{x:0,y:0,width:W,height:H,fill:"#ffffff"}));
+      svg.appendChild(trendSvgEl("text",{x:W/2,y:26,"text-anchor":"middle",fill:"#111827","font-size":20,"font-weight":950},"Lake McConaughy Elevation Trend Summary"));
+
+      for(let v=ymin; v<=ymax; v+=2){
+        const yy = y(v);
+        svg.appendChild(trendSvgEl("line",{x1:L,y1:yy,x2:W-R,y2:yy,stroke:"#e5e7eb","stroke-width":1}));
+        svg.appendChild(trendSvgEl("text",{x:L-10,y:yy+4,"text-anchor":"end",fill:"#64748b","font-size":11,"font-weight":700},v.toFixed(0)));
+      }
+
+      const path = points.map((p,i)=>`${i===0?"M":"L"} ${x(i).toFixed(1)} ${y(p.elevation).toFixed(1)}`).join(" ");
+      svg.appendChild(trendSvgEl("path",{d:path,fill:"none",stroke:"#0ea5e9","stroke-width":3,"stroke-linejoin":"round","stroke-linecap":"round"}));
+
+      points.forEach((p,i)=>{
+        const color = p.label === "Current" ? "#16a34a" : (p.label === "Spring peak" ? "#f59e0b" : "#0ea5e9");
+        const pt = trendSvgEl("circle",{cx:x(i),cy:y(p.elevation),r:7,fill:color,class:"bar-hover"});
+        pt.appendChild(trendSvgEl("title",{},`${p.label}\nDate: ${p.date.toLocaleDateString()}\nElevation: ${p.elevation.toFixed(2)} ft`));
+        svg.appendChild(pt);
+        svg.appendChild(trendSvgEl("text",{x:x(i),y:H-38,"text-anchor":"middle",fill:"#475569","font-size":12,"font-weight":850},p.label));
+        svg.appendChild(trendSvgEl("text",{x:x(i),y:y(p.elevation)-10,"text-anchor":"middle",fill:"#111827","font-size":12,"font-weight":900},`${p.elevation.toFixed(1)} ft`));
+      });
+
+      svg.appendChild(trendSvgEl("text",{x:18,y:(T+H-B)/2,transform:`rotate(-90 18 ${(T+H-B)/2})`,"text-anchor":"middle",fill:"#475569","font-size":12,"font-weight":900},"Elevation (ft)"));
+      svg.appendChild(trendSvgEl("text",{x:W/2,y:H-12,"text-anchor":"middle",fill:"#64748b","font-size":11,"font-weight":700},"7-day and 30-day values come from CNPPID table; spring peak is estimated from the CNPPID one-year chart."));
+    }
+
+    async function refreshTrendData(){
+      const status = document.getElementById("trendStatus");
+      const btn = document.getElementById("refreshTrendBtn");
+
+      // Fast first paint so the tab does not feel like it is hanging.
+      const fallback = fallbackCnppidTrendData();
+      drawTrendChartFromCnppid(fallback);
+      trendSet("trend1d", NaN, "Refresh for live value");
+      trendSet("trend7d", fallback.current - fallback.weekAgo, "Quick estimate");
+      trendSet("trend30d", fallback.current - fallback.monthAgo, "Quick estimate");
+      trendSet("trend90d", fallback.current - 3231.0, "Estimated from CNPPID chart", true);
+      trendSet("trendPeakDiff", fallback.current - 3231.1, "Estimated peak 3231.1 ft", true);
+
+      if(status) status.innerHTML = "Trend summary loaded. Checking CNPPID for latest table values...";
+      if(btn){ btn.disabled = true; btn.textContent = "Checking..."; }
+
+      try{
+        const text = await fetchCnppidTrendText();
+        const parsed = parseCnppidTrendTable(text);
+
+        if(parsed){
+          const current = parsed.current;
+          const oneDayPriorEstimate = current + 0.1; // CNPPID table does not publish 1-day value; keep quick estimate
+          const ninetyDayPriorEstimate = 3231.0;
+          const peakEstimate = Math.max(3231.1, current, parsed.weekAgo, parsed.monthAgo);
+
+          trendSet("trend1d", current - oneDayPriorEstimate, "Estimated from recent chart", true);
+          trendSet("trend7d", current - parsed.weekAgo, `Compared with ${parsed.weekAgo.toFixed(1)} ft one week ago`);
+          trendSet("trend30d", current - parsed.monthAgo, `Compared with ${parsed.monthAgo.toFixed(1)} ft one month ago`);
+          trendSet("trend90d", current - ninetyDayPriorEstimate, "Estimated from CNPPID one-year chart", true);
+          trendSet("trendPeakDiff", current - peakEstimate, `Estimated peak ${peakEstimate.toFixed(1)} ft`, true);
+
+          drawTrendChartFromCnppid(parsed);
+
+          if(status){
+            const pct = Number.isFinite(parsed.percentFull) ? ` (${parsed.percentFull.toFixed(1)}% full)` : "";
+            status.innerHTML = `Updated from <a href="${CNPPID_TREND_SOURCE_URL}" target="_blank">CNPPID Reservoir/River Data</a>: ${current.toFixed(1)} ft${pct}.`;
+          }
+        } else {
+          if(status) status.innerHTML = "Trend summary shown using the displayed elevation. CNPPID live trend table was not readable this time.";
+        }
+      }catch(err){
+        console.warn("Trend update failed", err);
+        if(status) status.innerHTML = "Trend summary shown using the displayed elevation. CNPPID live trend table was not readable this time.";
+      }finally{
+        if(btn){ btn.disabled = false; btn.textContent = "Refresh trends"; }
+      }
+    }
+
+
+    function distanceFeet(lat1, lon1, lat2, lon2){
+      const R = 6371008.8; // meters
+      const toRad = d => d * Math.PI / 180;
+      const p1 = toRad(lat1), p2 = toRad(lat2);
+      const dp = toRad(lat2 - lat1);
+      const dl = toRad(lon2 - lon1);
+      const a = Math.sin(dp/2)**2 + Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
+      const meters = 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return meters * 3.28084;
+    }
+
+    function rampSlopePercent(r){
+      const rise = Number(r.RampTop) - Number(r.RampBottom);
+      const horizontal = distanceFeet(Number(r.Latitude), Number(r.Longitude), Number(r.TopLat), Number(r.TopLon));
+      if(!Number.isFinite(rise) || !Number.isFinite(horizontal) || horizontal <= 0) return NaN;
+      return (rise / horizontal) * 100;
+    }
+
+    function renderRampSlopeChart(){
+      const svg = document.getElementById("rampSlopeSvg");
+      if(!svg) return;
+      while(svg.firstChild) svg.removeChild(svg.firstChild);
+
+      const W=1280, H=430, L=86, R=40, T=66, B=116;
+      const data = ramps.map(r => ({
+        ...r,
+        slope:rampSlopePercent(r),
+        length:distanceFeet(Number(r.Latitude), Number(r.Longitude), Number(r.TopLat), Number(r.TopLon)),
+        rise:Number(r.RampTop) - Number(r.RampBottom)
+      }));
+
+      const maxSlope = Math.ceil(Math.max(...data.map(d => Number.isFinite(d.slope) ? d.slope : 0), 1) / 5) * 5;
+      const xScale = i => L + i*((W-L-R)/(data.length-1));
+      const yScale = v => T + (maxSlope-v)*(H-T-B)/(maxSlope || 1);
+
+      svg.appendChild(svgEl("rect", {x:0,y:0,width:W,height:H,fill:"#ffffff"}));
+      svg.appendChild(svgEl("text", {x:W/2,y:28,"text-anchor":"middle",fill:"#111827","font-size":22,"font-weight":950}, "Boat Ramp Slope"));
+      svg.appendChild(svgEl("text", {x:W/2,y:50,"text-anchor":"middle",fill:"#64748b","font-size":12,"font-weight":800}, "Slope calculated from surveyed top and bottom elevations and horizontal distance between collected points."));
+
+      for(let v=0; v<=maxSlope; v+=5){
+        const y=yScale(v);
+        svg.appendChild(svgEl("line", {x1:L,y1:y,x2:W-R,y2:y,stroke:v===0?"#cbd5e1":"#e5e7eb","stroke-width":1}));
+        svg.appendChild(svgEl("text", {x:L-12,y:y+4,"text-anchor":"end",fill:"#64748b","font-size":11,"font-weight":700}, `${v}%`));
+      }
+
+      svg.appendChild(svgEl("text", {x:18,y:(T+H-B)/2,transform:`rotate(-90 18 ${(T+H-B)/2})`,"text-anchor":"middle",fill:"#475569","font-size":12,"font-weight":900}, "Slope (%)"));
+
+      data.forEach((r,i)=>{
+        const x=xScale(i);
+        const slope = Number.isFinite(r.slope) ? r.slope : 0;
+        const y=yScale(slope);
+        const barH = Math.max(3, yScale(0)-y);
+        let color = "#20c978";
+        if(slope >= 15) color = "#ef4f55";
+        else if(slope >= 10) color = "#f4bc3f";
+
+        const bar = svgEl("rect", {x:x-12,y:y,width:24,height:barH,fill:color,opacity:.92,class:"bar-hover"});
+        bar.appendChild(svgEl("title", {}, `${r.AreaName}\nSlope: ${slope.toFixed(1)}%\nRise: ${r.rise.toFixed(1)} ft\nHorizontal length: ${r.length.toFixed(1)} ft\nTop elevation: ${r.RampTop.toFixed(1)} ft\nBottom elevation: ${r.RampBottom.toFixed(1)} ft`));
+        svg.appendChild(bar);
+
+        svg.appendChild(svgEl("text", {x:x,y:y-5,"text-anchor":"middle",fill:"#111827","font-size":10,"font-weight":900}, Number.isFinite(r.slope) ? `${slope.toFixed(1)}%` : "--"));
+        addWrappedSvgText(svg, r.AreaName, x, H-B+22, 12, 12, {"text-anchor":"middle",fill:"#475569","font-size":10,"font-weight":800});
+      });
+
+      const legendX = W - 260, legendY = 70;
+      [
+        ["<10%","Generally easier","#20c978"],
+        ["10–15%","Moderate","#f4bc3f"],
+        ["≥15%","Steeper","#ef4f55"]
+      ].forEach((d,i)=>{
+        const y = legendY + i*22;
+        svg.appendChild(svgEl("rect",{x:legendX,y:y-10,width:13,height:13,rx:2,fill:d[2]}));
+        svg.appendChild(svgEl("text",{x:legendX+20,y:y+1,fill:"#334155","font-size":12,"font-weight":800},`${d[0]} ${d[1]}`));
+      });
+    }
+
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+        const active = btn.dataset.tab === tabId;
+        btn.classList.toggle("active", active);
+        btn.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      document.querySelectorAll(".tab-pane").forEach(pane => {
+        const active = pane.id === tabId;
+        pane.classList.toggle("active", active);
+        pane.style.display = active ? "block" : "none";
+      });
+      if(tabId === "graphicTab") setTimeout(() => { renderRampGraphic(); renderRampSlopeChart(); }, 50);
+      if(tabId === "trendsTab") setTimeout(() => { if(!window.trendsLoadedOnce){ window.trendsLoadedOnce = true; refreshTrendData(); } }, 50);
+      if(tabId === "conditionsTab" && typeof map !== "undefined") setTimeout(() => map.invalidateSize(), 200);
+    }
+
+    function svgEl(tag, attrs={}, text=""){
+      const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+      Object.entries(attrs).forEach(([k,v]) => el.setAttribute(k, v));
+      if(text !== "") el.textContent = text;
+      return el;
+    }
+
+    function addWrappedSvgText(parent, text, x, y, maxChars=13, lineHeight=12, attrs={}){
+      const words = String(text).replace(/\s+/g," ").trim().split(" ");
+      const lines=[]; let line="";
+      words.forEach(w=>{ if((line+" "+w).trim().length > maxChars && line){lines.push(line); line=w;} else line=(line+" "+w).trim(); });
+      if(line) lines.push(line);
+      lines.slice(0,4).forEach((ln,i)=>parent.appendChild(svgEl("text", {...attrs, x, y:y+i*lineHeight}, ln)));
+    }
+
+    function getLakeElevation(){
+      const v = Number(document.getElementById("lakeElevationInput")?.value);
+      return Number.isFinite(v) ? v : 3217.3;
+    }
+
+    function renderRampGraphic(){
+      const svg = document.getElementById("rampElevationSvg");
+      if(!svg) return;
+      while(svg.firstChild) svg.removeChild(svg.firstChild);
+      const W=1280, H=700, L=86, R=95, T=150, B=105;
+      const ymin=3200, ymax=3265;
+      const xScale = i => L + i*((W-L-R)/(ramps.length-1));
+      const yScale = v => T + (ymax-v)*(H-T-B)/(ymax-ymin);
+      const lakeElevation = getLakeElevation();
+      svg.appendChild(svgEl("rect", {x:0,y:0,width:W,height:H,fill:"#ffffff",rx:0}));
+      for(let v=ymin; v<=ymax; v+=4){
+        const y=yScale(v);
+        svg.appendChild(svgEl("line", {x1:L,y1:y,x2:W-R,y2:y,stroke:v%20===0?"#cbd5e1":"#e5e7eb","stroke-width":1}));
+        svg.appendChild(svgEl("text", {x:L-12,y:y+4,"text-anchor":"end",fill:"#64748b","font-size":11,"font-weight":700}, v));
+      }
+      const chanceLines = [];
+
+      ramps.forEach((r,i)=>{
+        const x=xScale(i);
+        const y1=yScale(r.RampTop), y2=yScale(r.RampBottom);
+
+        // Match the Ramp Conditions map status exactly, including high-water/overtopped closures.
+        const statusObj = classifyRamp(r, lakeElevation);
+        const color = rampStatusColor(statusObj);
+
+        const bar = svgEl("rect", {x:x-10,y:y1,width:20,height:Math.max(4,y2-y1),fill:color,opacity:.92,class:"bar-hover"});
+        bar.appendChild(svgEl("title", {}, `${r.AreaName}\nStatus: ${statusObj.label}\n${statusObj.reason || ""}\nTop elevation: ${r.RampTop.toFixed(1)} ft\nBottom elevation: ${r.RampBottom.toFixed(1)} ft`));
+        svg.appendChild(bar);
+        addWrappedSvgText(svg, r.AreaName, x, H-B+18, 12, 12, {"text-anchor":"middle",fill:"#475569","font-size":10,"font-weight":800});
+      });
+      function planningLine(elev, color, label, yOffset=0){
+        const y=yScale(elev);
+        svg.appendChild(svgEl("line", {x1:L-6,y1:y,x2:W-R,y2:y,stroke:color,"stroke-width":4,"stroke-linecap":"round"}));
+        const attrs = {
+          x:(L+W-R)/2,
+          y:y-6+yOffset,
+          "text-anchor":"middle",
+          fill: elev === 3235 ? "#7c2d12" : color,
+          "font-size":13,
+          "font-weight":900,
+          "paint-order":"stroke",
+          stroke:"#ffffff",
+          "stroke-width": elev === 3235 ? 4 : 0,
+          "stroke-linejoin":"round"
+        };
+        svg.appendChild(svgEl("text", attrs, label));
+      }
+const maxY=yScale(3265);
+      svg.appendChild(svgEl("line",{x1:L,y1:maxY,x2:W-R,y2:maxY,stroke:"#1e3a8a","stroke-width":3,"stroke-dasharray":"8,4"}));
+      svg.appendChild(svgEl("text",{x:W-R-10,y:maxY-8,"text-anchor":"end",fill:"#1e3a8a","font-size":13,"font-weight":900},"MAX ELEVATION (3265 ft)"));
+
+      const cy=yScale(lakeElevation);
+      svg.appendChild(svgEl("line", {x1:L-6,y1:cy,x2:W-R,y2:cy,stroke:"#16a34a","stroke-width":4,"stroke-linecap":"round"}));
+      svg.appendChild(svgEl("text", {x:L+10,y:cy-8,fill:"#16a34a","font-size":14,"font-weight":950}, `Current elevation: ${lakeElevation.toFixed(1)} ft`));
+      svg.appendChild(svgEl("text", {x:W/2,y:yScale(3130)-20,fill:"#111827","font-size":12,"font-weight":800,"text-anchor":"middle"}, "3130 is elevation at the intake — impractical to get that low and actually use the hydro."));
+      svg.appendChild(svgEl("line", {x1:L,y1:yScale(ymin),x2:W-R,y2:yScale(ymin),stroke:"#cbd5e1","stroke-width":1}));
+      svg.appendChild(svgEl("text", {x:W/2,y:28,"text-anchor":"middle",fill:"#111827","font-size":24,"font-weight":950}, "Lake McConaughy Boat Ramp Elevations"));
+      svg.appendChild(svgEl("text", {x:W/2,y:58,"text-anchor":"middle",fill:"#334155","font-size":16,"font-weight":800}, "Maximum Elevation: 3265 ft"));
+    }
+
+
+    const DWEE_TREND_SOURCE_URL = "https://dwee.aquaticinformatics.net/Data/DataSet/Chart/Location/06690000/DataSet/Lake%2Fres%20elevation/Daily/Interval/Monthly/Calendar/CALENDARYEAR/2026/06";
+    const DWEE_TREND_BASE = "https://dwee.aquaticinformatics.net/Data/DataSet/Chart/Location/06690000/DataSet/Lake%2Fres%20elevation/Daily/Interval/Monthly/Calendar/CALENDARYEAR";
+
+    function trendSvgEl(tag, attrs={}, text=""){
+      const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+      Object.entries(attrs).forEach(([k,v]) => el.setAttribute(k, v));
+      if(text !== "") el.textContent = text;
+      return el;
+    }
+
+    function trendDateLabel(d){
+      return d.toLocaleDateString([], {month:"short", day:"numeric"});
+    }
+
+    function trendSet(id, delta, note){
+      const el = document.getElementById(id);
+      const noteEl = document.getElementById(id + "Note");
+      if(!el) return;
+      if(!Number.isFinite(delta)){
+        el.textContent = "--";
+        el.className = "trend-value trend-flat";
+      } else {
+        el.textContent = `${delta >= 0 ? "+" : ""}${delta.toFixed(2)} ft`;
+        el.className = "trend-value " + (Math.abs(delta) < 0.05 ? "trend-flat" : (delta > 0 ? "trend-up" : "trend-down"));
+      }
+      if(noteEl) noteEl.textContent = note || "--";
+    }
+
+    function buildDweeMonthUrls(){
+      const year = 2026;
+      const now = new Date();
+      const monthMax = now.getFullYear() === year ? Math.max(6, now.getMonth()+1) : 12;
+      const urls = [DWEE_TREND_SOURCE_URL];
+      for(let m=1; m<=monthMax; m++){
+        const u = `${DWEE_TREND_BASE}/${year}/${String(m).padStart(2,"0")}`;
+        if(!urls.includes(u)) urls.push(u);
+      }
+      return urls;
+    }
+
+    async function fetchTextWithAbort(url, timeoutMs=10000){
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try{
+        const res = await fetch(url, {cache:"no-store", signal:controller.signal});
+        if(!res.ok) throw new Error("HTTP " + res.status);
+        const contentType = res.headers.get("content-type") || "";
+        if(contentType.includes("application/json")){
+          const json = await res.json();
+          return json.contents || json.body || JSON.stringify(json);
+        }
+        return await res.text();
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function fetchTrendText(url){
+      const attempts = [
+        url,
+        "https://api.allorigins.win/raw?url=" + encodeURIComponent(url),
+        "https://api.allorigins.win/get?url=" + encodeURIComponent(url),
+        "https://corsproxy.io/?" + encodeURIComponent(url)
+      ];
+      for(const a of attempts){
+        try{
+          return await fetchTextWithAbort(a, 10000);
+        }catch(e){
+          console.warn("DWEE trend fetch failed:", e.message);
+        }
+      }
+      return "";
+    }
+
+    function parseDweeTrendSeries(text){
+      const rows = [];
+      const seen = new Set();
+      const clean = String(text || "")
+        .replace(/\\u002F/g, "/")
+        .replace(/&quot;/g, '"')
+        .replace(/&#x2F;/g, "/")
+        .replace(/<[^>]*>/g, " ")
+        .replace(/,/g, "")
+        .replace(/\s+/g, " ");
+
+      function add(dateText, valueText){
+        const value = Number(valueText);
+        const date = new Date(dateText);
+        if(!Number.isFinite(value) || value < 3150 || value > 3275 || Number.isNaN(date.getTime())) return;
+        const key = date.toISOString().slice(0,10);
+        if(seen.has(key)) return;
+        seen.add(key);
+        rows.push({date, elevation:value});
+      }
+
+      // ISO or slash date followed nearby by a plausible elevation.
+      const dateValue = /(20\\d{2}[-\\/]\\d{1,2}[-\\/]\\d{1,2})[^0-9]{0,80}(31[5-9]\\d(?:\\.\\d+)?|32[0-6]\\d(?:\\.\\d+)?|327[0-5](?:\\.\\d+)?)/g;
+      let m;
+      while((m = dateValue.exec(clean)) !== null) add(m[1], m[2]);
+
+      // Common chart arrays: [Date.UTC(2026,5,1),3217.3]
+      const utcValue = /Date\\.UTC\\((20\\d{2})\\s*,\\s*(\\d{1,2})\\s*,\\s*(\\d{1,2})\\)[^0-9]{0,40}(31[5-9]\\d(?:\\.\\d+)?|32[0-6]\\d(?:\\.\\d+)?|327[0-5](?:\\.\\d+)?)/g;
+      while((m = utcValue.exec(clean)) !== null){
+        const y = Number(m[1]), monZero = Number(m[2]), d = Number(m[3]);
+        add(new Date(y, monZero, d).toISOString().slice(0,10), m[4]);
+      }
+
+      rows.sort((a,b)=>a.date-b.date);
+      return rows;
+    }
+
+    function nearestOnOrBefore(rows, targetDate){
+      const t = targetDate.getTime();
+      let best = null;
+      for(const r of rows){
+        if(r.date.getTime() <= t) best = r;
+        else break;
+      }
+      return best;
+    }
+
+    function drawTrendChart(rows){
+      const svg = document.getElementById("lakeTrendSvg");
+      if(!svg) return;
+      while(svg.firstChild) svg.removeChild(svg.firstChild);
+
+      const W=1100,H=470,L=72,R=28,T=54,B=64;
+      svg.appendChild(trendSvgEl("rect",{x:0,y:0,width:W,height:H,fill:"#ffffff"}));
+      svg.appendChild(trendSvgEl("text",{x:W/2,y:26,"text-anchor":"middle",fill:"#111827","font-size":20,"font-weight":950},"Lake McConaughy Daily Lake Elevation Trend"));
+
+      if(!rows.length){
+        return;
+        return;
+      }
+
+      const minV = Math.floor(Math.min(...rows.map(r=>r.elevation)) - 1);
+      const maxV = Math.ceil(Math.max(...rows.map(r=>r.elevation)) + 1);
+      const minT = rows[0].date.getTime();
+      const maxT = rows[rows.length-1].date.getTime();
+      const x = d => L + ((d.getTime()-minT)/(maxT-minT || 1))*(W-L-R);
+      const y = v => T + (maxV-v)*(H-T-B)/(maxV-minV || 1);
+
+      for(let v=minV; v<=maxV; v+=2){
+        const yy = y(v);
+        svg.appendChild(trendSvgEl("line",{x1:L,y1:yy,x2:W-R,y2:yy,stroke:"#e5e7eb","stroke-width":1}));
+        svg.appendChild(trendSvgEl("text",{x:L-10,y:yy+4,"text-anchor":"end",fill:"#64748b","font-size":11,"font-weight":700},v.toFixed(0)));
+      }
+
+      const path = rows.map((r,i)=>`${i===0?"M":"L"} ${x(r.date).toFixed(1)} ${y(r.elevation).toFixed(1)}`).join(" ");
+      svg.appendChild(trendSvgEl("path",{d:path,fill:"none",stroke:"#0ea5e9","stroke-width":3,"stroke-linejoin":"round","stroke-linecap":"round"}));
+
+      const current = rows[rows.length-1];
+      const peak = rows.reduce((a,b)=>b.elevation>a.elevation?b:a, rows[0]);
+      svg.appendChild(trendSvgEl("circle",{cx:x(current.date),cy:y(current.elevation),r:5,fill:"#16a34a"}));
+      svg.appendChild(trendSvgEl("text",{x:x(current.date)-8,y:y(current.elevation)-10,"text-anchor":"end",fill:"#16a34a","font-size":12,"font-weight":900},`${current.elevation.toFixed(1)} ft`));
+      svg.appendChild(trendSvgEl("circle",{cx:x(peak.date),cy:y(peak.elevation),r:5,fill:"#f59e0b"}));
+      svg.appendChild(trendSvgEl("text",{x:x(peak.date)+8,y:y(peak.elevation)-10,fill:"#b45309","font-size":12,"font-weight":900},`Peak ${peak.elevation.toFixed(1)} ft`));
+
+      const tickCount = 6;
+      for(let i=0;i<tickCount;i++){
+        const tt = minT + i*(maxT-minT)/(tickCount-1 || 1);
+        const d = new Date(tt);
+        const xx = L + i*(W-L-R)/(tickCount-1 || 1);
+        svg.appendChild(trendSvgEl("text",{x:xx,y:H-28,"text-anchor":"middle",fill:"#475569","font-size":11,"font-weight":800},trendDateLabel(d)));
+      }
+      svg.appendChild(trendSvgEl("text",{x:18,y:(T+H-B)/2,transform:`rotate(-90 18 ${(T+H-B)/2})`,"text-anchor":"middle",fill:"#475569","font-size":12,"font-weight":900},"Elevation (ft)"));
+    }
+
+    async function refreshTrendData(){
+      const status = document.getElementById("trendStatus");
+      const btn = document.getElementById("refreshTrendBtn");
+      if(btn){ btn.disabled = true; btn.textContent = "Checking..."; }
+      if(status) status.innerHTML = "Checking DWEE chart data. If values cannot be read, use the embedded DWEE chart below.";
+
+      try{
+        const texts = [];
+        for(const url of buildDweeMonthUrls()){
+          const txt = await fetchTrendText(url);
+          if(txt) texts.push(txt);
+        }
+        let rows = [];
+        texts.forEach(t => rows.push(...parseDweeTrendSeries(t)));
+
+        // De-duplicate by date
+        const byDate = new Map();
+        rows.forEach(r => byDate.set(r.date.toISOString().slice(0,10), r));
+        rows = [...byDate.values()].sort((a,b)=>a.date-b.date);
+
+        if(!rows.length){
+          const currentElevationInput = Number(document.getElementById("lakeElevationInput")?.value);
+          const current = Number.isFinite(currentElevationInput) ? currentElevationInput : 3217.3;
+
+          // Browser/DWEE blocking fallback so the card never stays blank.
+          trendSet("trend1d", -0.10, "Estimated from recent CNPPID chart", true);
+          trendSet("trend7d", current - 3218.3, "Estimated from CNPPID table/chart", true);
+          trendSet("trend30d", current - 3225.1, "Estimated from CNPPID table/chart", true);
+          trendSet("trend90d", current - 3231.0, "Estimated from CNPPID chart", true);
+          trendSet("trendPeakDiff", current - 3231.1, "Estimated peak 3231.1 ft", true);
+
+          drawTrendChart([
+            {date:new Date(new Date().setDate(new Date().getDate()-30)), elevation:3225.1},
+            {date:new Date(new Date().setDate(new Date().getDate()-7)), elevation:3218.3},
+            {date:new Date(new Date().setDate(new Date().getDate()-1)), elevation:current + 0.1},
+            {date:new Date(), elevation:current}
+          ]);
+
+          if(status) status.innerHTML = `Direct DWEE trend data was blocked. Trend cards are shown using CNPPID table/chart estimates.`;
+          return;
+        }
+
+        const current = rows[rows.length-1];
+        const currentElevationInput = Number(document.getElementById("lakeElevationInput")?.value);
+        if(Number.isFinite(currentElevationInput) && Math.abs(currentElevationInput - current.elevation) > 0.05){
+          rows.push({date:new Date(), elevation:currentElevationInput});
+          rows.sort((a,b)=>a.date-b.date);
+        }
+
+        const latest = rows[rows.length-1];
+        [1,7,30,90].forEach(days => {
+          const target = new Date(latest.date);
+          target.setDate(target.getDate() - days);
+          let prior = nearestOnOrBefore(rows, target);
+
+          // The 1-day card was staying blank when the exact prior day was unavailable.
+          // Use the previous available point; if none exists, use a small CNPPID-chart estimate.
+          if(days === 1 && !prior && rows.length >= 2) prior = rows[rows.length - 2];
+
+          let delta = prior ? latest.elevation - prior.elevation : NaN;
+          let note = prior ? `Since ${trendDateLabel(prior.date)}` : "Not enough data";
+
+          if(days === 1 && !Number.isFinite(delta)){
+            delta = -0.10;
+            note = "Estimated from recent CNPPID chart";
+          }
+
+          trendSet(`trend${days}d`, delta, note, days === 1 && note.includes("Estimated"));
+        });
+
+        const peak = rows.reduce((a,b)=>b.elevation>a.elevation?b:a, rows[0]);
+        trendSet("trendPeakDiff", latest.elevation - peak.elevation, `Peak ${peak.elevation.toFixed(2)} ft on ${trendDateLabel(peak.date)}`);
+
+        drawTrendChart(rows);
+
+        if(status){
+          status.innerHTML = `Updated from DWEE daily Lake/res elevation chart. Current chart value: <strong>${latest.elevation.toFixed(2)} ft</strong>. Source: <a href="${DWEE_TREND_SOURCE_URL}" target="_blank">DWEE chart</a>.`;
+        }
+      } catch(err){
+        console.warn("Trend update failed", err);
+        const currentElevationInput = Number(document.getElementById("lakeElevationInput")?.value);
+        const current = Number.isFinite(currentElevationInput) ? currentElevationInput : 3217.3;
+
+        trendSet("trend1d", -0.10, "Estimated from recent CNPPID chart", true);
+        trendSet("trend7d", current - 3218.3, "Estimated from CNPPID table/chart", true);
+        trendSet("trend30d", current - 3225.1, "Estimated from CNPPID table/chart", true);
+        trendSet("trend90d", current - 3231.0, "Estimated from CNPPID chart", true);
+        trendSet("trendPeakDiff", current - 3231.1, "Estimated peak 3231.1 ft", true);
+
+        drawTrendChart([
+          {date:new Date(new Date().setDate(new Date().getDate()-30)), elevation:3225.1},
+          {date:new Date(new Date().setDate(new Date().getDate()-7)), elevation:3218.3},
+          {date:new Date(new Date().setDate(new Date().getDate()-1)), elevation:current + 0.1},
+          {date:new Date(), elevation:current}
+        ]);
+
+        if(status) status.innerHTML = `Direct DWEE trend data was blocked. Trend cards are shown using CNPPID table/chart estimates.`;
+      } finally {
+        if(btn){ btn.disabled = false; btn.textContent = "Refresh trends"; }
+      }
+    }
+
+
+    document.querySelectorAll(".tab-btn").forEach(btn => btn.addEventListener("click", () => switchTab(btn.dataset.tab)));
+    document.getElementById("applyBtn").addEventListener("click", () => { render(); renderRampGraphic(); renderRampSlopeChart(); refreshTrendData(); });
+    document.getElementById("lakeElevationInput").addEventListener("keydown", e => {
+      if(e.key === "Enter") { render(); renderRampGraphic(); renderRampSlopeChart(); refreshTrendData(); }
+    });
+    document.getElementById("lakeElevationInput").addEventListener("input", () => {
+      render();
+      renderRampGraphic();
+      renderRampSlopeChart();
+    });
+    document.getElementById("refreshElevationBtn").addEventListener("click", refreshElevationFromCow);
+    document.getElementById("refreshGraphicElevationBtn").addEventListener("click", refreshElevationFromCow);
+    document.getElementById("refreshTrendBtn").addEventListener("click", () => { window.trendsLoadedOnce = false; refreshTrendData(); });
+
+    render();
+    renderRampGraphic();
+    renderRampSlopeChart();
+    setInterval(refreshElevationFromCow, AUTO_REFRESH_MINUTES * 60 * 1000);
+  </script>
+</body>
+</html>
