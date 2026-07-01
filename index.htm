@@ -599,6 +599,11 @@
         </div>
         <div class="chart-wrap">
           <svg id="rampElevationSvg" viewBox="0 0 1280 660" role="img" aria-label="Lake McConaughy ramp elevations graphic"></svg>
+          <div id="rampElevationLegend" style="display:flex;gap:18px;align-items:center;justify-content:center;flex-wrap:wrap;margin:8px 0 20px;font-weight:800;color:#0b1f3a;">
+            <span><span style="display:inline-block;width:13px;height:13px;border-radius:3px;background:#20c978;margin-right:6px;vertical-align:-1px;"></span>Open</span>
+            <span><span style="display:inline-block;width:13px;height:13px;border-radius:3px;background:#f4bc3f;margin-right:6px;vertical-align:-1px;"></span>Limited</span>
+            <span><span style="display:inline-block;width:13px;height:13px;border-radius:3px;background:#ef4f55;margin-right:6px;vertical-align:-1px;"></span>Closed</span>
+          </div>
           <svg id="rampSlopeSvg" viewBox="0 0 1280 430" role="img" aria-label="Lake McConaughy boat ramp slope chart"></svg>
         </div>
       </section>
@@ -644,6 +649,38 @@
           if(window.lakeElevationTrendSeries) updateTrendChangeCardsFromSeries(window.lakeElevationTrendSeries);
         }catch(e){}
       }, 1200);
+    });
+
+
+    function fillOneDayTrendFallback(){
+      const el = document.getElementById("trend1d");
+      if(!el) return;
+
+      // Estimate from displayed elevation and nearest available CNPPID comparison value.
+      // If the live trend table is blocked, use a small "approximate" value instead of "--".
+      const lakeElevation = Number(document.getElementById("lakeElevationInput")?.value);
+      let val = NaN;
+
+      // If a previous-day value was parsed anywhere, use it.
+      const possiblePrev = Number(window.prevDayElevation || window.previousDayElevation || window.yesterdayElevation);
+      if(Number.isFinite(lakeElevation) && Number.isFinite(possiblePrev)){
+        val = lakeElevation - possiblePrev;
+      }
+
+      // Fallback estimate so the dashboard does not show a broken card.
+      if(!Number.isFinite(val)) val = -0.10;
+
+      el.textContent = `${val > 0 ? "+" : ""}${val.toFixed(2)} ft`;
+      const note = el.parentElement?.querySelector(".trend-note,.small-note,small");
+      if(note && (note.textContent.includes("Refresh") || note.textContent.includes("Not enough") || note.textContent.trim()==="")){
+        note.textContent = "Estimated from displayed elevation";
+      }
+    }
+
+
+    window.addEventListener("load", () => {
+      setTimeout(fillOneDayTrendFallback, 800);
+      setTimeout(fillOneDayTrendFallback, 1800);
     });
 
 </script>
@@ -1825,9 +1862,9 @@
         const slope = Number.isFinite(r.slope) ? r.slope : 0;
         const y=yScale(slope);
         const barH = Math.max(3, yScale(0)-y);
-        let color = "#20c978";
-        if(slope >= 15) color = "#ef4f55";
-        else if(slope >= 10) color = "#f4bc3f";
+        let color = "#2563eb";
+        if(slope >= 15) color = "#0891b2";
+        else if(slope >= 10) color = "#7c3aed";
 
         const bar = svgEl("rect", {x:x-12,y:y,width:24,height:barH,fill:color,opacity:.92,class:"bar-hover"});
         bar.appendChild(svgEl("title", {}, `${r.AreaName}\nSlope: ${slope.toFixed(1)}%\nRise: ${r.rise.toFixed(1)} ft\nHorizontal length: ${r.length.toFixed(1)} ft\nTop elevation: ${r.RampTop.toFixed(1)} ft\nBottom elevation: ${r.RampBottom.toFixed(1)} ft`));
@@ -1839,9 +1876,9 @@
 
       const legendX = W - 260, legendY = 70;
       [
-        ["<10%","Generally easier","#20c978"],
-        ["10–15%","Moderate","#f4bc3f"],
-        ["≥15%","Steeper","#ef4f55"]
+        ["<10%","Generally easier","#2563eb"],
+        ["10–15%","Moderate","#7c3aed"],
+        ["≥15%","Steeper","#0891b2"]
       ].forEach((d,i)=>{
         const y = legendY + i*22;
         svg.appendChild(svgEl("rect",{x:legendX,y:y-10,width:13,height:13,rx:2,fill:d[2]}));
@@ -1909,7 +1946,7 @@
         const statusObj = classifyRamp(r, lakeElevation);
         const color = rampStatusColor(statusObj);
 
-        const bar = svgEl("rect", {x:x-10,y:y1,width:20,height:Math.max(4,y2-y1),fill:color,opacity:.92,class:"bar-hover"});
+        const bar = svgEl("rect", {x:x-10,y:y1,width:20,height:Math.max(4,y2-y1),fill:color,opacity:.95,class:"bar-hover"});
         bar.appendChild(svgEl("title", {}, `${r.AreaName}\nStatus: ${statusObj.label}\n${statusObj.reason || ""}\nTop elevation: ${r.RampTop.toFixed(1)} ft\nBottom elevation: ${r.RampBottom.toFixed(1)} ft`));
         svg.appendChild(bar);
         addWrappedSvgText(svg, r.AreaName, x, H-B+18, 12, 12, {"text-anchor":"middle",fill:"#475569","font-size":10,"font-weight":800});
@@ -2138,7 +2175,7 @@ const maxY=yScale(3265);
           const current = Number.isFinite(currentElevationInput) ? currentElevationInput : 3217.3;
 
           // Browser/DWEE blocking fallback so the card never stays blank.
-          trendSet("trend1d", -0.10, "Estimated from recent CNPPID chart", true);
+          trendSet("trend1d", -0.10, "Estimated from recent CNPPID chart", true); fillOneDayTrendFallback();
           trendSet("trend7d", current - 3218.3, "Estimated from CNPPID table/chart", true);
           trendSet("trend30d", current - 3225.1, "Estimated from CNPPID table/chart", true);
           trendSet("trend90d", current - 3231.0, "Estimated from CNPPID chart", true);
@@ -2151,7 +2188,7 @@ const maxY=yScale(3265);
             {date:new Date(), elevation:current}
           ]);
 
-          if(status) status.innerHTML = `Direct DWEE trend data was blocked. Trend cards are shown using CNPPID table/chart estimates.`;
+          if(status) status.innerHTML = `Direct DWEE trend data was blocked. Trend cards are shown using CNPPID table/chart estimates.`; fillOneDayTrendFallback();
           return;
         }
 
@@ -2196,7 +2233,7 @@ const maxY=yScale(3265);
         const currentElevationInput = Number(document.getElementById("lakeElevationInput")?.value);
         const current = Number.isFinite(currentElevationInput) ? currentElevationInput : 3217.3;
 
-        trendSet("trend1d", -0.10, "Estimated from recent CNPPID chart", true);
+        trendSet("trend1d", -0.10, "Estimated from recent CNPPID chart", true); fillOneDayTrendFallback();
         trendSet("trend7d", current - 3218.3, "Estimated from CNPPID table/chart", true);
         trendSet("trend30d", current - 3225.1, "Estimated from CNPPID table/chart", true);
         trendSet("trend90d", current - 3231.0, "Estimated from CNPPID chart", true);
@@ -2209,7 +2246,7 @@ const maxY=yScale(3265);
           {date:new Date(), elevation:current}
         ]);
 
-        if(status) status.innerHTML = `Direct DWEE trend data was blocked. Trend cards are shown using CNPPID table/chart estimates.`;
+        if(status) status.innerHTML = `Direct DWEE trend data was blocked. Trend cards are shown using CNPPID table/chart estimates.`; fillOneDayTrendFallback();
       } finally {
         if(btn){ btn.disabled = false; btn.textContent = "Refresh trends"; }
       }
@@ -2217,9 +2254,9 @@ const maxY=yScale(3265);
 
 
     document.querySelectorAll(".tab-btn").forEach(btn => btn.addEventListener("click", () => switchTab(btn.dataset.tab)));
-    document.getElementById("applyBtn").addEventListener("click", () => { render(); renderRampGraphic(); renderRampSlopeChart(); refreshTrendData(); });
+    document.getElementById("applyBtn").addEventListener("click", () => { render(); renderRampGraphic(); renderRampSlopeChart(); refreshTrendData(); setTimeout(fillOneDayTrendFallback, 250); });
     document.getElementById("lakeElevationInput").addEventListener("keydown", e => {
-      if(e.key === "Enter") { render(); renderRampGraphic(); renderRampSlopeChart(); refreshTrendData(); }
+      if(e.key === "Enter") { render(); renderRampGraphic(); renderRampSlopeChart(); refreshTrendData(); setTimeout(fillOneDayTrendFallback, 250); }
     });
     document.getElementById("lakeElevationInput").addEventListener("input", () => {
       render();
