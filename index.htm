@@ -479,6 +479,49 @@
     .bar-hover{cursor:pointer;}
     .bar-hover:hover{opacity:.72;}
 
+
+    .figure-with-right-legend{
+      display:flex;
+      align-items:flex-start;
+      gap:20px;
+      min-width:1420px;
+    }
+    .figure-with-right-legend svg{
+      flex:1 1 auto;
+      min-width:0 !important;
+    }
+    .right-figure-legend{
+      min-width:160px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      align-items:flex-start;
+      justify-content:flex-start;
+      margin-top:20px;
+      font-weight:800;
+      color:#0b1f3a;
+      font-size:.92rem;
+    }
+    .right-figure-legend .legend-title{
+      font-size:.78rem;
+      text-transform:uppercase;
+      letter-spacing:.07em;
+      color:#334155;
+      font-weight:950;
+      margin-bottom:2px;
+    }
+    .right-figure-legend span{
+      white-space:nowrap;
+    }
+    .legend-swatch{
+      display:inline-block;
+      width:13px;
+      height:13px;
+      border-radius:3px;
+      margin-right:6px;
+      vertical-align:-1px;
+    }
+
 </style>
 </head>
 
@@ -510,7 +553,7 @@
           <div class="hero-head">
             <div>
               <h2>Lake McConaughy</h2>
-              <div class="small-note">Current elevation source: <a href="https://cnppid.com/lake-river-data" target="_blank">CNPPID Reservoir/River Data</a></div>
+              <div class="small-note">Current elevation source: <a href="https://lakebrief.com/lake/lake-mcconaughy/water" target="_blank">LakeBrief water level</a></div>
             </div>
             <span class="status-badge status-closed" id="overallStatus">CLOSED</span>
           </div>
@@ -518,8 +561,8 @@
           <div class="metric-grid">
             <div class="metric">
               <div class="label">Current Elevation</div>
-              <div class="value"><span id="lakeElevationText">3217.3</span> ft</div>
-              <div class="note">Refresh from CNPPID or edit manually</div>
+              <div class="value"><span id="lakeElevationText">3217</span> ft</div>
+              <div class="note">Refresh from LakeBrief or edit manually</div>
             </div>
 
             <div class="metric">
@@ -530,11 +573,11 @@
           </div>
 
           <div class="elev-input">
-            <input id="lakeElevationInput" class="form-control" type="number" step="0.1" value="3217.3">
+            <input id="lakeElevationInput" class="form-control" type="number" step="1" value="3217">
             <button class="btn btn-primary" id="applyBtn">Apply</button>
           </div>
           <button class="btn btn-primary w-100 mt-2" id="refreshElevationBtn">Refresh current elevation</button>
-          <div class="small-note" id="liveElevationStatus">Click refresh to check CNPPID. If browser security blocks the live read, the displayed/manual value is used.</div>
+          <div class="small-note" id="liveElevationStatus">Click refresh to check LakeBrief. If the live read is unavailable in the browser, the displayed/manual value is used.</div>
           <div class="small-note mt-2" id="overtopSummary" style="color:#ffdb73;font-weight:800;"></div>
         </section>
 
@@ -598,13 +641,19 @@
           </div>
         </div>
         <div class="chart-wrap">
-          <svg id="rampElevationSvg" viewBox="0 0 1280 660" role="img" aria-label="Lake McConaughy ramp elevations graphic"></svg>
-          <div id="rampElevationLegend" style="display:flex;gap:18px;align-items:center;justify-content:center;flex-wrap:wrap;margin:8px 0 20px;font-weight:800;color:#0b1f3a;">
-            <span><span style="display:inline-block;width:13px;height:13px;border-radius:3px;background:#20c978;margin-right:6px;vertical-align:-1px;"></span>Open</span>
-            <span><span style="display:inline-block;width:13px;height:13px;border-radius:3px;background:#f4bc3f;margin-right:6px;vertical-align:-1px;"></span>Limited</span>
-            <span><span style="display:inline-block;width:13px;height:13px;border-radius:3px;background:#ef4f55;margin-right:6px;vertical-align:-1px;"></span>Closed</span>
-          </div>
-          <svg id="rampSlopeSvg" viewBox="0 0 1280 430" role="img" aria-label="Lake McConaughy boat ramp slope chart"></svg>
+          
+<div class="figure-with-right-legend">
+  <svg id="rampElevationSvg" viewBox="0 0 1280 660" role="img" aria-label="Lake McConaughy ramp elevations graphic" style="flex:1;"></svg>
+  <div id="rampElevationLegend" class="right-figure-legend">
+    <span><span style="display:inline-block;width:13px;height:13px;border-radius:3px;background:#20c978;margin-right:6px;vertical-align:-1px;"></span>Open</span>
+    <span><span style="display:inline-block;width:13px;height:13px;border-radius:3px;background:#f4bc3f;margin-right:6px;vertical-align:-1px;"></span>Limited</span>
+    <span><span style="display:inline-block;width:13px;height:13px;border-radius:3px;background:#ef4f55;margin-right:6px;vertical-align:-1px;"></span>Closed</span>
+  </div>
+</div>
+
+          <div class="figure-with-right-legend">
+  <svg id="rampSlopeSvg" viewBox="0 0 1420 430" role="img" aria-label="Lake McConaughy boat ramp slope chart"></svg>
+</div>
         </div>
       </section>
     </div>
@@ -614,7 +663,7 @@
         <div class="trend-top">
           <div>
             <h2>Lake Elevation Trends</h2>
-            <div class="small-note">Trends use CNPPID reservoir readings and chart images. The 7-day and 30-day changes use the live CNPPID table; 1-day, 90-day, and current-year peak are estimated from the CNPPID one-month/one-year charts when direct DWEE data is blocked.</div>
+            <div class="small-note">Trends use LakeBrief reservoir readings and chart images. The 7-day and 30-day changes use the live LakeBrief table; 1-day, 90-day, and current-year peak are estimated from the LakeBrief one-month/one-year charts when direct DWEE data is blocked.</div>
           </div>
           <div class="chart-controls">
             <button class="btn btn-primary" id="refreshTrendBtn">Refresh trends</button>
@@ -622,7 +671,6 @@
         </div>
 
         <div class="trend-grid">
-          <div class="trend-metric"><div class="trend-label">1-day change</div><div class="trend-value" id="trend1d">--</div><div class="trend-note" id="trend1dNote">--</div></div>
           <div class="trend-metric"><div class="trend-label">7-day change</div><div class="trend-value" id="trend7d">--</div><div class="trend-note" id="trend7dNote">--</div></div>
           <div class="trend-metric"><div class="trend-label">30-day change</div><div class="trend-value" id="trend30d">--</div><div class="trend-note" id="trend30dNote">--</div></div>
           <div class="trend-metric"><div class="trend-label">90-day change</div><div class="trend-value" id="trend90d">--</div><div class="trend-note" id="trend90dNote">--</div></div>
@@ -630,7 +678,7 @@
         </div>
 
         <div class="trend-status" id="trendStatus">
-          Using CNPPID Reservoir/River Data and CNPPID chart images. DWEE blocks embedded chart display in this standalone dashboard.
+          Using LakeBrief water level and LakeBrief chart images. DWEE blocks embedded chart display in this standalone dashboard.
         </div>
 
         <div class="trend-chart-wrap">
@@ -656,7 +704,7 @@
       const el = document.getElementById("trend1d");
       if(!el) return;
 
-      // Estimate from displayed elevation and nearest available CNPPID comparison value.
+      // Estimate from displayed elevation and nearest available LakeBrief comparison value.
       // If the live trend table is blocked, use a small "approximate" value instead of "--".
       const lakeElevation = Number(document.getElementById("lakeElevationInput")?.value);
       let val = NaN;
@@ -900,9 +948,41 @@
       attribution:"Esri World Imagery"
     }).addTo(map);
 
+    // Optional road overlay. Roads start OFF so the satellite map stays clean.
+    const roadOverlay = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}", {
+      maxZoom:19,
+      opacity:0.55,
+      attribution:"Esri Transportation"
+    });
+
+    const RoadToggleControl = L.Control.extend({
+      options:{position:"bottomright"},
+      onAdd:function(){
+        const div = L.DomUtil.create("div", "home-control");
+        div.innerHTML = "☰";
+        div.title = "Toggle access roads";
+        div.style.opacity = "0.65";
+        L.DomEvent.disableClickPropagation(div);
+        L.DomEvent.on(div, "click", function(){
+          if(map.hasLayer(roadOverlay)){
+            map.removeLayer(roadOverlay);
+            div.style.opacity = "0.65";
+          } else {
+            roadOverlay.addTo(map);
+            div.style.opacity = "1";
+            try{ rampLayer.bringToFront(); contourLabelGroup.bringToFront(); }catch(e){}
+          }
+        });
+        return div;
+      }
+    });
+    map.addControl(new RoadToggleControl());
+
     const contourLayerGroup = L.layerGroup().addTo(map);
     const contourLabelGroup = L.layerGroup().addTo(map);
     const rampLayer = L.layerGroup().addTo(map);
+
+    setTimeout(() => { try{ rampLayer.bringToFront(); }catch(e){} }, 500);
 
     map.on("zoomend", refreshContourLabelsForZoom);
 
@@ -1332,7 +1412,7 @@
 
     function render(){
       const lakeElevation = Number(document.getElementById("lakeElevationInput").value);
-      document.getElementById("lakeElevationText").textContent = lakeElevation.toFixed(1);
+      document.getElementById("lakeElevationText").textContent = Math.round(lakeElevation);
 
       const evaluated = ramps.map(r => {
         const depth = lakeElevation - r.RampBottom;
@@ -1472,7 +1552,7 @@
           <b>${shortName(r.AreaName)}</b><br>
           Status: <b>${r.Status.label}</b><br>
           Reason: ${r.Status.reason || ""}<br>
-          Lake elevation: ${lakeElevation.toFixed(1)} ft<br>
+          Lake elevation: ${Math.round(lakeElevation)} ft<br>
           Ramp bottom: ${r.RampBottom.toFixed(1)} ft<br>
           Ramp top: ${r.RampTop.toFixed(1)} ft<br>
           Water above ramp bottom: ${r.Depth.toFixed(1)} ft<br>
@@ -1508,7 +1588,9 @@
 
 
 
-    const CNPPID_LIVE_SOURCE_URL = "https://cnppid.com/lake-river-data";
+    const LakeBrief_LIVE_SOURCE_URL = "https://lakebrief.com/lake/lake-mcconaughy/water";
+
+    const LAKEBRIEF_LIVE_SOURCE_URL = "https://lakebrief.com/lake/lake-mcconaughy/water";
 
     function plausibleElevation(n){ return Number.isFinite(n) && n >= 3150 && n <= 3275; }
 
@@ -1520,30 +1602,23 @@
         .replace(/\s+/g, " ")
         .trim();
 
-      // CNPPID page/table format:
-      // Lake McConaughy 3217.5 = 641800ac-ft (36.8% capacity) 3218.3 3225.1 3230.9
-      const tableMatch = clean.match(/Lake\s+McConaughy\s+(3[12]\d{2}(?:\.\d+)?)\s*=\s*([0-9]+)\s*ac-?ft\s*\(([0-9]+(?:\.\d+)?)%\s*capacity\)\s+(3[12]\d{2}(?:\.\d+)?)\s+(3[12]\d{2}(?:\.\d+)?)\s+(3[12]\d{2}(?:\.\d+)?)/i);
-      if(tableMatch){
-        const elevation = Number(tableMatch[1]);
-        const storage = Number(tableMatch[2]);
-        const percentFull = Number(tableMatch[3]);
-        const weekAgo = Number(tableMatch[4]);
-        const monthAgo = Number(tableMatch[5]);
-        const yearAgo = Number(tableMatch[6]);
-        if(plausibleElevation(elevation)){
-          return {elevation, storage, percentFull, weekAgo, monthAgo, yearAgo};
-        }
+      const lower = clean.toLowerCase();
+      const start = lower.indexOf("lake mcconaughy");
+      const focused = start >= 0 ? clean.slice(start, start + 2500) : clean;
+
+      const targeted = focused.match(/(?:water\s*level|current|live\s*reading|elevation|elev|level)[^0-9]{0,120}(3[12]\d{2}(?:\.\d+)?)/i);
+      if(targeted){
+        const elevation = Math.floor(Number(targeted[1]));
+        if(plausibleElevation(elevation)) return {elevation, storage:null, percentFull:null, source:"LakeBrief water level"};
       }
 
-      const focusedIndex = clean.toLowerCase().indexOf("lake mcconaughy");
-      const focused = focusedIndex >= 0 ? clean.slice(focusedIndex, focusedIndex + 1200) : clean;
       const candidates = [...focused.matchAll(/\b(31[5-9]\d(?:\.\d+)?|32[0-6]\d(?:\.\d+)?|327[0-5](?:\.\d+)?)\b/g)]
-        .map(m => Number(m[1]))
+        .map(m => Math.floor(Number(m[1])))
         .filter(plausibleElevation)
         .filter(v => Math.abs(v - 3265) > 0.05);
 
-      if(!candidates.length) return null;
-      return {elevation:candidates[0], storage:null, percentFull:null};
+      if(candidates.length) return {elevation:candidates[0], storage:null, percentFull:null, source:"LakeBrief water level"};
+      return null;
     }
 
     async function fetchTextWithTimeout(url, timeoutMs=6000){
@@ -1565,11 +1640,10 @@
 
     async function fetchCnppidLiveElevation(){
       const urls = [
-        // Jina Reader is usually the quickest CORS-readable option for this static CNPPID page.
-        "https://r.jina.ai/" + CNPPID_LIVE_SOURCE_URL,
-        "https://api.allorigins.win/raw?url=" + encodeURIComponent(CNPPID_LIVE_SOURCE_URL),
-        "https://api.allorigins.win/get?url=" + encodeURIComponent(CNPPID_LIVE_SOURCE_URL),
-        "https://corsproxy.io/?" + encodeURIComponent(CNPPID_LIVE_SOURCE_URL)
+        "https://r.jina.ai/" + LAKEBRIEF_LIVE_SOURCE_URL,
+        "https://api.allorigins.win/raw?url=" + encodeURIComponent(LAKEBRIEF_LIVE_SOURCE_URL),
+        "https://api.allorigins.win/get?url=" + encodeURIComponent(LAKEBRIEF_LIVE_SOURCE_URL),
+        "https://corsproxy.io/?" + encodeURIComponent(LAKEBRIEF_LIVE_SOURCE_URL)
       ];
 
       for(const url of urls){
@@ -1577,17 +1651,17 @@
           const text = await fetchTextWithTimeout(url, 6000);
           const data = parseMcConaughyData(text);
           if(data && plausibleElevation(data.elevation)){
-            return {...data, source:"CNPPID Reservoir/River Data"};
+            return {...data, elevation:Math.floor(data.elevation), source:"LakeBrief water level"};
           }
         }catch(err){
-          console.warn("CNPPID elevation read failed:", err.message);
+          console.warn("LakeBrief elevation read failed:", err.message);
         }
       }
-      // Last fallback keeps dashboard usable when browser/proxy access is blocked.
+
       const typedElevation = Number(document.getElementById("lakeElevationInput")?.value);
-      const safeElevation = (Number.isFinite(typedElevation) && typedElevation > 3000 && typedElevation < 3265)
-        ? typedElevation
-        : 3217.5;
+      const safeElevation = (Number.isFinite(typedElevation) && typedElevation > 3000 && typedElevation < 3276)
+        ? Math.floor(typedElevation)
+        : 3217;
       return {elevation:safeElevation, storage:null, percentFull:null, source:"displayed/manual value"};
     }
 
@@ -1605,24 +1679,24 @@
       const buttons = [btn, gbtn].filter(Boolean);
 
       buttons.forEach(b => { b.disabled = true; b.textContent = "Checking..."; });
-      if(status) status.textContent = "Checking CNPPID Reservoir/River Data...";
+      if(status) status.textContent = "Checking LakeBrief water level...";
 
       try{
         const live = await fetchCnppidLiveElevation();
         if(live && plausibleElevation(live.elevation)){
-          document.getElementById("lakeElevationInput").value = live.elevation.toFixed(1);
+          document.getElementById("lakeElevationInput").value = Math.floor(live.elevation);
           updateOptionalStorageDisplay(live);
           const pct = Number.isFinite(live.percentFull) ? ` (${live.percentFull.toFixed(1)}% full)` : "";
           if(status){
             status.textContent = live.source === "displayed/manual value"
-              ? `Live CNPPID read was blocked by the browser. Using displayed/manual elevation: ${live.elevation.toFixed(1)} ft.`
-              : `Live elevation updated from ${live.source}: ${live.elevation.toFixed(1)} ft${pct}`;
+              ? `LakeBrief blocks direct browser reads from this standalone page. Using the displayed/manual elevation: ${Math.floor(live.elevation)} ft. Dashboard calculations are still updated.`
+              : `Current elevation copied from LakeBrief Today value: ${Math.floor(live.elevation)} ft${pct}`;
           }
         } else {
-          if(status) status.textContent = "Live CNPPID read was blocked by the browser. Using the displayed/manual elevation; dashboard calculations are still updated.";
+          if(status) status.textContent = "LakeBrief blocks direct browser reads from this standalone page. Using the displayed/manual elevation; dashboard calculations are still updated.";
         }
       } catch(err){
-        if(status) status.textContent = "Live CNPPID read was blocked by the browser. Using the displayed/manual elevation; dashboard calculations are still updated.";
+        if(status) status.textContent = "LakeBrief blocks direct browser reads from this standalone page. Using the displayed/manual elevation; dashboard calculations are still updated.";
       } finally {
         render();
         renderRampGraphic();
@@ -1635,7 +1709,7 @@
     function switchTab(tabId){
   
 
-    const CNPPID_TREND_SOURCE_URL = "https://cnppid.com/lake-river-data";
+    const LakeBrief_TREND_SOURCE_URL = "https://lakebrief.com/lake/lake-mcconaughy/water";
 
     function trendSvgEl(tag, attrs={}, text=""){
       const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
@@ -1663,9 +1737,9 @@
 
     async function fetchCnppidTrendText(){
       try{
-        return await fetchTextWithTimeout("https://r.jina.ai/" + CNPPID_TREND_SOURCE_URL, 4500);
+        return await fetchTextWithTimeout("https://r.jina.ai/" + LakeBrief_TREND_SOURCE_URL, 4500);
       }catch(e){
-        console.warn("CNPPID quick trend source failed:", e.message);
+        console.warn("LakeBrief quick trend source failed:", e.message);
         return "";
       }
     }
@@ -1679,7 +1753,7 @@
         .trim();
 
       const dateMatch = clean.match(/Readings for ([A-Za-z]+,\s+[A-Za-z]+\s+\d{1,2},\s+\d{4})/i);
-      const readingDate = dateMatch ? dateMatch[1] : "latest CNPPID reading";
+      const readingDate = dateMatch ? dateMatch[1] : "latest LakeBrief reading";
 
       const m = clean.match(/Lake\s+McConaughy\s+(3[12]\d{2}(?:\.\d+)?)\s*=\s*([0-9]+)\s*ac-?ft\s*\(([0-9]+(?:\.\d+)?)%\s*capacity\)\s+(3[12]\d{2}(?:\.\d+)?)\s+(3[12]\d{2}(?:\.\d+)?)\s+(3[12]\d{2}(?:\.\d+)?)/i);
       if(!m) return null;
@@ -1757,7 +1831,7 @@
       });
 
       svg.appendChild(trendSvgEl("text",{x:18,y:(T+H-B)/2,transform:`rotate(-90 18 ${(T+H-B)/2})`,"text-anchor":"middle",fill:"#475569","font-size":12,"font-weight":900},"Elevation (ft)"));
-      svg.appendChild(trendSvgEl("text",{x:W/2,y:H-12,"text-anchor":"middle",fill:"#64748b","font-size":11,"font-weight":700},"7-day and 30-day values come from CNPPID table; spring peak is estimated from the CNPPID one-year chart."));
+      svg.appendChild(trendSvgEl("text",{x:W/2,y:H-12,"text-anchor":"middle",fill:"#64748b","font-size":11,"font-weight":700},"7-day and 30-day values come from LakeBrief table; spring peak is estimated from the LakeBrief one-year chart."));
     }
 
     async function refreshTrendData(){
@@ -1770,10 +1844,10 @@
       trendSet("trend1d", NaN, "Refresh for live value");
       trendSet("trend7d", fallback.current - fallback.weekAgo, "Quick estimate");
       trendSet("trend30d", fallback.current - fallback.monthAgo, "Quick estimate");
-      trendSet("trend90d", fallback.current - 3231.0, "Estimated from CNPPID chart", true);
+      trendSet("trend90d", fallback.current - 3231.0, "Estimated from LakeBrief chart", true);
       trendSet("trendPeakDiff", fallback.current - 3231.1, "Estimated peak 3231.1 ft", true);
 
-      if(status) status.innerHTML = "Trend summary loaded. Checking CNPPID for latest table values...";
+      if(status) status.innerHTML = "Trend summary loaded. Checking LakeBrief for latest table values...";
       if(btn){ btn.disabled = true; btn.textContent = "Checking..."; }
 
       try{
@@ -1782,28 +1856,28 @@
 
         if(parsed){
           const current = parsed.current;
-          const oneDayPriorEstimate = current + 0.1; // CNPPID table does not publish 1-day value; keep quick estimate
+          const oneDayPriorEstimate = current + 0.1; // LakeBrief table does not publish 1-day value; keep quick estimate
           const ninetyDayPriorEstimate = 3231.0;
           const peakEstimate = Math.max(3231.1, current, parsed.weekAgo, parsed.monthAgo);
 
           trendSet("trend1d", current - oneDayPriorEstimate, "Estimated from recent chart", true);
           trendSet("trend7d", current - parsed.weekAgo, `Compared with ${parsed.weekAgo.toFixed(1)} ft one week ago`);
           trendSet("trend30d", current - parsed.monthAgo, `Compared with ${parsed.monthAgo.toFixed(1)} ft one month ago`);
-          trendSet("trend90d", current - ninetyDayPriorEstimate, "Estimated from CNPPID one-year chart", true);
+          trendSet("trend90d", current - ninetyDayPriorEstimate, "Estimated from LakeBrief one-year chart", true);
           trendSet("trendPeakDiff", current - peakEstimate, `Estimated peak ${peakEstimate.toFixed(1)} ft`, true);
 
           drawTrendChartFromCnppid(parsed);
 
           if(status){
             const pct = Number.isFinite(parsed.percentFull) ? ` (${parsed.percentFull.toFixed(1)}% full)` : "";
-            status.innerHTML = `Updated from <a href="${CNPPID_TREND_SOURCE_URL}" target="_blank">CNPPID Reservoir/River Data</a>: ${current.toFixed(1)} ft${pct}.`;
+            status.innerHTML = `Updated from <a href="${LakeBrief_TREND_SOURCE_URL}" target="_blank">LakeBrief water level</a>: ${current.toFixed(1)} ft${pct}.`;
           }
         } else {
-          if(status) status.innerHTML = "Trend summary shown using the displayed elevation. CNPPID live trend table was not readable this time.";
+          if(status) status.innerHTML = "Trend summary shown using the displayed elevation. LakeBrief live trend table was not readable this time.";
         }
       }catch(err){
         console.warn("Trend update failed", err);
-        if(status) status.innerHTML = "Trend summary shown using the displayed elevation. CNPPID live trend table was not readable this time.";
+        if(status) status.innerHTML = "Trend summary shown using the displayed elevation. LakeBrief live trend table was not readable this time.";
       }finally{
         if(btn){ btn.disabled = false; btn.textContent = "Refresh trends"; }
       }
@@ -1974,7 +2048,7 @@ const maxY=yScale(3265);
 
       const cy=yScale(lakeElevation);
       svg.appendChild(svgEl("line", {x1:L-6,y1:cy,x2:W-R,y2:cy,stroke:"#16a34a","stroke-width":4,"stroke-linecap":"round"}));
-      svg.appendChild(svgEl("text", {x:L+10,y:cy-8,fill:"#16a34a","font-size":14,"font-weight":950}, `Current elevation: ${lakeElevation.toFixed(1)} ft`));
+      svg.appendChild(svgEl("text", {x:L+10,y:cy-8,fill:"#16a34a","font-size":14,"font-weight":950}, `Current elevation: ${Math.round(lakeElevation)} ft`));
       svg.appendChild(svgEl("text", {x:W/2,y:yScale(3130)-20,fill:"#111827","font-size":12,"font-weight":800,"text-anchor":"middle"}, "3130 is elevation at the intake — impractical to get that low and actually use the hydro."));
       svg.appendChild(svgEl("line", {x1:L,y1:yScale(ymin),x2:W-R,y2:yScale(ymin),stroke:"#cbd5e1","stroke-width":1}));
       svg.appendChild(svgEl("text", {x:W/2,y:28,"text-anchor":"middle",fill:"#111827","font-size":24,"font-weight":950}, "Lake McConaughy Boat Ramp Elevations"));
@@ -2175,10 +2249,10 @@ const maxY=yScale(3265);
           const current = Number.isFinite(currentElevationInput) ? currentElevationInput : 3217.3;
 
           // Browser/DWEE blocking fallback so the card never stays blank.
-          trendSet("trend1d", -0.10, "Estimated from recent CNPPID chart", true); fillOneDayTrendFallback();
-          trendSet("trend7d", current - 3218.3, "Estimated from CNPPID table/chart", true);
-          trendSet("trend30d", current - 3225.1, "Estimated from CNPPID table/chart", true);
-          trendSet("trend90d", current - 3231.0, "Estimated from CNPPID chart", true);
+          trendSet("trend1d", -0.10, "Estimated from recent LakeBrief chart", true); fillOneDayTrendFallback();
+          trendSet("trend7d", current - 3218.3, "Estimated from LakeBrief table/chart", true);
+          trendSet("trend30d", current - 3225.1, "Estimated from LakeBrief table/chart", true);
+          trendSet("trend90d", current - 3231.0, "Estimated from LakeBrief chart", true);
           trendSet("trendPeakDiff", current - 3231.1, "Estimated peak 3231.1 ft", true);
 
           drawTrendChart([
@@ -2188,7 +2262,7 @@ const maxY=yScale(3265);
             {date:new Date(), elevation:current}
           ]);
 
-          if(status) status.innerHTML = `Direct DWEE trend data was blocked. Trend cards are shown using CNPPID table/chart estimates.`; fillOneDayTrendFallback();
+          if(status) status.innerHTML = `Direct DWEE trend data was blocked. Trend cards are shown using LakeBrief table/chart estimates.`; fillOneDayTrendFallback();
           return;
         }
 
@@ -2206,7 +2280,7 @@ const maxY=yScale(3265);
           let prior = nearestOnOrBefore(rows, target);
 
           // The 1-day card was staying blank when the exact prior day was unavailable.
-          // Use the previous available point; if none exists, use a small CNPPID-chart estimate.
+          // Use the previous available point; if none exists, use a small LakeBrief-chart estimate.
           if(days === 1 && !prior && rows.length >= 2) prior = rows[rows.length - 2];
 
           let delta = prior ? latest.elevation - prior.elevation : NaN;
@@ -2214,7 +2288,7 @@ const maxY=yScale(3265);
 
           if(days === 1 && !Number.isFinite(delta)){
             delta = -0.10;
-            note = "Estimated from recent CNPPID chart";
+            note = "Estimated from recent LakeBrief chart";
           }
 
           trendSet(`trend${days}d`, delta, note, days === 1 && note.includes("Estimated"));
@@ -2233,10 +2307,10 @@ const maxY=yScale(3265);
         const currentElevationInput = Number(document.getElementById("lakeElevationInput")?.value);
         const current = Number.isFinite(currentElevationInput) ? currentElevationInput : 3217.3;
 
-        trendSet("trend1d", -0.10, "Estimated from recent CNPPID chart", true); fillOneDayTrendFallback();
-        trendSet("trend7d", current - 3218.3, "Estimated from CNPPID table/chart", true);
-        trendSet("trend30d", current - 3225.1, "Estimated from CNPPID table/chart", true);
-        trendSet("trend90d", current - 3231.0, "Estimated from CNPPID chart", true);
+        trendSet("trend1d", -0.10, "Estimated from recent LakeBrief chart", true); fillOneDayTrendFallback();
+        trendSet("trend7d", current - 3218.3, "Estimated from LakeBrief table/chart", true);
+        trendSet("trend30d", current - 3225.1, "Estimated from LakeBrief table/chart", true);
+        trendSet("trend90d", current - 3231.0, "Estimated from LakeBrief chart", true);
         trendSet("trendPeakDiff", current - 3231.1, "Estimated peak 3231.1 ft", true);
 
         drawTrendChart([
@@ -2246,7 +2320,7 @@ const maxY=yScale(3265);
           {date:new Date(), elevation:current}
         ]);
 
-        if(status) status.innerHTML = `Direct DWEE trend data was blocked. Trend cards are shown using CNPPID table/chart estimates.`; fillOneDayTrendFallback();
+        if(status) status.innerHTML = `Direct DWEE trend data was blocked. Trend cards are shown using LakeBrief table/chart estimates.`; fillOneDayTrendFallback();
       } finally {
         if(btn){ btn.disabled = false; btn.textContent = "Refresh trends"; }
       }
