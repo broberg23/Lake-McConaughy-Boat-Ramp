@@ -601,6 +601,9 @@
           <div class="legend-row"><span class="dot" style="background:var(--open)"></span>Open <strong id="mapOpenCount">0</strong></div>
           <div class="legend-row"><span class="dot" style="background:var(--limited)"></span>Limited / Use Caution <strong id="mapLimitedCount">0</strong></div>
           <div class="legend-row"><span class="dot" style="background:var(--closed)"></span>Closed <strong id="mapClosedCount">0</strong></div>
+          <div class="small-note" id="damContourNote" style="margin-top:8px;color:#d8e9f7;max-width:260px;">
+            
+          </div>
         </div>
       </main>
     </section>
@@ -670,7 +673,7 @@
         <div class="trend-top">
           <div>
             <h2>Lake Elevation Trends</h2>
-            <div class="small-note">Trends use LakeBrief reservoir readings and chart images. The 7-day and 30-day changes use the live LakeBrief table; 1-day, 90-day, and current-year peak are estimated from the LakeBrief one-month/one-year charts when direct DWEE data is blocked.</div>
+            <div class="small-note">Trends use LakeBrief reservoir readings and chart images. The 7-day and 30-day changes use the live LakeBrief table; 1-day, 90-day, and current-year peak are estimated from the LakeBrief.</div>
           </div>
           <div class="chart-controls">
             <button class="btn btn-primary" id="refreshTrendBtn">Refresh trends</button>
@@ -679,9 +682,13 @@
 
         <div class="trend-grid">
           <div class="trend-metric"><div class="trend-label">7-day change</div><div class="trend-value" id="trend7d">--</div><div class="trend-note" id="trend7dNote">--</div></div>
+
+
+
           <div class="trend-metric"><div class="trend-label">30-day change</div><div class="trend-value" id="trend30d">--</div><div class="trend-note" id="trend30dNote">--</div></div>
           <div class="trend-metric"><div class="trend-label">90-day change</div><div class="trend-value" id="trend90d">--</div><div class="trend-note" id="trend90dNote">--</div></div>
           <div class="trend-metric"><div class="trend-label">Below current-year peak</div><div class="trend-value" id="trendPeakDiff">--</div><div class="trend-note" id="trendPeakDiffNote">--</div></div>
+          <div class="trend-metric"><div class="trend-label">Below full pool</div><div class="trend-value" id="trendFullPool">--</div><div class="trend-note" id="trendFullPoolNote">Full pool 3265 ft</div></div>
         </div>
 
         <div class="trend-status" id="trendStatus">
@@ -1115,20 +1122,34 @@
     function isLakeMcConaughyContour(feature){
       const pts = flattenCoords(feature.geometry && feature.geometry.coordinates);
       if(!pts.length) return false;
+
       const meanLon = pts.reduce((sum,p)=>sum+p[0],0) / pts.length;
       const meanLat = pts.reduce((sum,p)=>sum+p[1],0) / pts.length;
+      const minLon = Math.min(...pts.map(p => p[0]));
+      const maxLon = Math.max(...pts.map(p => p[0]));
+      const minLat = Math.min(...pts.map(p => p[1]));
+      const maxLat = Math.max(...pts.map(p => p[1]));
 
-      // Spatial filter keeps Lake McConaughy and removes Lake Ogallala east/right of the dam.
-      
-      // Remove detached contour groups north/east of the main lake body.
-      // Keep only contours whose centroid falls within the main Lake McConaughy basin.
-      return (
-        meanLon > -102.05 &&
-        meanLon < -101.69 &&
-        meanLat > 41.19 &&
-        meanLat < 41.305
+      const inMainBasin = (
+        maxLon > -102.055 &&
+        minLon < -101.665 &&
+        maxLat > 41.185 &&
+        minLat < 41.312
       );
-    
+
+      const nearDamBasin = (
+        maxLon > -101.750 &&
+        minLon < -101.665 &&
+        maxLat > 41.190 &&
+        minLat < 41.270
+      );
+
+      const looksLikeOgallala = (
+        meanLon > -101.675 ||
+        (meanLon > -101.700 && meanLat < 41.190)
+      );
+
+      return (inMainBasin || nearDamBasin) && !looksLikeOgallala;
     }
 
     function representativePoint(feature){
@@ -1194,6 +1215,77 @@
 
     let currentContourFeatures = [];
     let currentContourElevation = null;
+    const supplementalDamContourGroup = L.layerGroup().addTo(map);
+
+    function damContourStyle(depth){
+      return {
+        color: depth <= 5 ? "#ffffff" : "#58d7ff",
+        weight: depth <= 5 ? 2.2 : 1.15,
+        opacity: 0.68,
+        dashArray: "4 4"
+      };
+    }
+
+    function makeEllipsePath(centerLat, centerLon, latRadius, lonRadius, startDeg=0, endDeg=360, n=120){
+      const pts = [];
+      const start = startDeg * Math.PI / 180;
+      const end = endDeg * Math.PI / 180;
+      for(let i=0; i<=n; i++){
+        const t = start + (end - start) * (i / n);
+        pts.push([
+          centerLat + Math.sin(t) * latRadius,
+          centerLon + Math.cos(t) * lonRadius
+        ]);
+      }
+      return pts;
+    }
+
+    function addSupplementalDamContours(currentElevation, sourceFeatures){
+      supplementalDamContourGroup.clearLayers();
+
+      const damDeepFeatures = (sourceFeatures || []).filter(f => {
+        const elev = Number((f.properties || {}).Elevation ?? (f.properties || {}).ELEVATION);
+        if(!Number.isFinite(elev) || elev >= 3145) return false;
+        const pts = flattenCoords(f.geometry && f.geometry.coordinates);
+        return pts.some(p => p[0] > -101.755 && p[0] < -101.665 && p[1] > 41.190 && p[1] < 41.270);
+      });
+
+      if(damDeepFeatures.length) return;
+
+      const approxContours = [
+        {elev:3140, lat:41.2295, lon:-101.7195, latR:0.036, lonR:0.055, start:195, end:350},
+        {elev:3130, lat:41.2290, lon:-101.7165, latR:0.030, lonR:0.047, start:198, end:348},
+        {elev:3120, lat:41.2283, lon:-101.7135, latR:0.025, lonR:0.039, start:202, end:346},
+        {elev:3110, lat:41.2276, lon:-101.7110, latR:0.020, lonR:0.031, start:205, end:344},
+        {elev:3100, lat:41.2267, lon:-101.7088, latR:0.015, lonR:0.024, start:208, end:342},
+        {elev:3090, lat:41.2258, lon:-101.7068, latR:0.010, lonR:0.017, start:210, end:340}
+      ];
+
+      approxContours.forEach(c => {
+        if(c.elev > currentElevation) return;
+        const depth = currentElevation - c.elev;
+        const path = makeEllipsePath(c.lat, c.lon, c.latR, c.lonR, c.start, c.end, 120);
+        const line = L.polyline(path, damContourStyle(depth)).addTo(supplementalDamContourGroup);
+        line.bindTooltip(`${Math.round(depth)} ft deep<br>Approx. dam-basin contour elevation ${c.elev} ft`, {sticky:true});
+
+        const p = path[Math.floor(path.length * 0.55)];
+        if(p && Math.round(depth) % 10 === 0){
+          L.tooltip({
+            permanent:false,
+            direction:"center",
+            className:"contour-depth-label",
+            opacity:1
+          }).setLatLng(p).setContent(String(Math.round(depth))).addTo(contourLabelGroup);
+        }
+      });
+
+      try{
+        supplementalDamContourGroup.bringToBack();
+        contourLabelGroup.bringToFront();
+        rampLayer.bringToFront();
+      }catch(e){}
+    }
+
 
     function labelSettingsForZoom(){
       const z = map.getZoom();
@@ -1322,6 +1414,7 @@
 
       contourLayerGroup.clearLayers();
       contourLabelGroup.clearLayers();
+      try{ supplementalDamContourGroup.clearLayers(); }catch(e){}
 
       const base = "https://services5.arcgis.com/IOshH1zLrIieqrNk/arcgis/rest/services/LakeContours/FeatureServer/0/query";
       const allFeatures = [];
@@ -1394,6 +1487,7 @@
         currentContourFeatures = features;
         currentContourElevation = currentElevation;
         addContourDepthLabels(features, currentElevation);
+        addSupplementalDamContours(currentElevation, features);
 
         contourLayerGroup.bringToBack();
         contourLabelGroup.bringToFront();
@@ -1865,6 +1959,7 @@
       trendSet("trend30d", fallback.current - fallback.monthAgo, "Quick estimate");
       trendSet("trend90d", fallback.current - 3231.0, "Estimated from LakeBrief chart", true);
       trendSet("trendPeakDiff", fallback.current - 3231.1, "Estimated peak 3231.1 ft", true);
+          updateFullPoolTrendCard(fallback.current);
 
       if(status) status.innerHTML = "Trend summary loaded. Checking LakeBrief for latest table values...";
       if(btn){ btn.disabled = true; btn.textContent = "Checking..."; }
@@ -1884,6 +1979,7 @@
           trendSet("trend30d", current - parsed.monthAgo, `Compared with ${parsed.monthAgo.toFixed(1)} ft one month ago`);
           trendSet("trend90d", current - ninetyDayPriorEstimate, "Estimated from LakeBrief one-year chart", true);
           trendSet("trendPeakDiff", current - peakEstimate, `Estimated peak ${peakEstimate.toFixed(1)} ft`, true);
+          updateFullPoolTrendCard(current);
 
           drawTrendChartFromCnppid(parsed);
 
@@ -2141,6 +2237,25 @@ const maxY=yScale(3265);
       if(noteEl) noteEl.textContent = note || "--";
     }
 
+
+    function updateFullPoolTrendCard(currentElevation){
+      const fullPool = 3265;
+      const el = document.getElementById("trendFullPool");
+      const noteEl = document.getElementById("trendFullPoolNote");
+      if(!el) return;
+      const current = Number(currentElevation);
+      if(!Number.isFinite(current)){
+        el.textContent = "--";
+        el.className = "trend-value trend-flat";
+        if(noteEl) noteEl.textContent = "Full pool 3265 ft";
+        return;
+      }
+      const diff = current - fullPool;
+      el.textContent = `${diff >= 0 ? "+" : ""}${diff.toFixed(2)} ft`;
+      el.className = "trend-value " + (Math.abs(diff) < 0.05 ? "trend-flat" : (diff > 0 ? "trend-up" : "trend-down"));
+      if(noteEl) noteEl.textContent = `Current ${current.toFixed(2)} ft; full pool ${fullPool} ft`;
+    }
+
     function buildDweeMonthUrls(){
       const year = 2026;
       const now = new Date();
@@ -2311,6 +2426,7 @@ const maxY=yScale(3265);
           trendSet("trend30d", current - 3225.1, "Estimated from LakeBrief table/chart", true);
           trendSet("trend90d", current - 3231.0, "Estimated from LakeBrief chart", true);
           trendSet("trendPeakDiff", current - 3231.1, "Estimated peak 3231.1 ft", true);
+          updateFullPoolTrendCard(current);
 
           drawTrendChart([
             {date:new Date(new Date().setDate(new Date().getDate()-30)), elevation:3225.1},
@@ -2353,6 +2469,7 @@ const maxY=yScale(3265);
 
         const peak = rows.reduce((a,b)=>b.elevation>a.elevation?b:a, rows[0]);
         trendSet("trendPeakDiff", latest.elevation - peak.elevation, `Peak ${peak.elevation.toFixed(2)} ft on ${trendDateLabel(peak.date)}`);
+          updateFullPoolTrendCard(latest.elevation);
 
         drawTrendChart(rows);
 
@@ -2369,6 +2486,7 @@ const maxY=yScale(3265);
         trendSet("trend30d", current - 3225.1, "Estimated from LakeBrief table/chart", true);
         trendSet("trend90d", current - 3231.0, "Estimated from LakeBrief chart", true);
         trendSet("trendPeakDiff", current - 3231.1, "Estimated peak 3231.1 ft", true);
+          updateFullPoolTrendCard(current);
 
         drawTrendChart([
           {date:new Date(new Date().setDate(new Date().getDate()-30)), elevation:3225.1},
@@ -2385,14 +2503,15 @@ const maxY=yScale(3265);
 
 
     document.querySelectorAll(".tab-btn").forEach(btn => btn.addEventListener("click", () => switchTab(btn.dataset.tab)));
-    document.getElementById("applyBtn").addEventListener("click", () => { render(); renderRampGraphic(); renderRampSlopeChart(); refreshTrendData(); setTimeout(fillOneDayTrendFallback, 250); });
+    document.getElementById("applyBtn").addEventListener("click", () => { render(); renderRampGraphic(); renderRampSlopeChart(); updateFullPoolTrendCard(Number(document.getElementById("lakeElevationInput")?.value)); refreshTrendData(); setTimeout(fillOneDayTrendFallback, 250); });
     document.getElementById("lakeElevationInput").addEventListener("keydown", e => {
-      if(e.key === "Enter") { render(); renderRampGraphic(); renderRampSlopeChart(); refreshTrendData(); setTimeout(fillOneDayTrendFallback, 250); }
+      if(e.key === "Enter") { render(); renderRampGraphic(); renderRampSlopeChart(); updateFullPoolTrendCard(Number(document.getElementById("lakeElevationInput")?.value)); refreshTrendData(); setTimeout(fillOneDayTrendFallback, 250); }
     });
     document.getElementById("lakeElevationInput").addEventListener("input", () => {
       render();
       renderRampGraphic();
       renderRampSlopeChart();
+      updateFullPoolTrendCard(Number(document.getElementById("lakeElevationInput")?.value));
     });
     document.getElementById("refreshElevationBtn").addEventListener("click", refreshElevationFromCow);
     document.getElementById("refreshGraphicElevationBtn").addEventListener("click", refreshElevationFromCow);
@@ -2402,6 +2521,7 @@ const maxY=yScale(3265);
     renderRampGraphic();
     renderRampSlopeChart();
     setInterval(refreshElevationFromCow, AUTO_REFRESH_MINUTES * 60 * 1000);
+    updateFullPoolTrendCard(Number(document.getElementById("lakeElevationInput")?.value));
   </script>
 </body>
 </html>
