@@ -481,13 +481,13 @@
     .bar-hover:hover{opacity:.72;}
 
     .vendor-marker{
-      width:22px;height:22px;border-radius:50%;
+      width:16px; height:16px;border-radius:50%;
       display:flex;align-items:center;justify-content:center;
-      border:2px solid #06131f;
-      box-shadow:0 0 6px rgba(0,0,0,.45);
+      border:1.5px solid #06131f;
+      box-shadow:0 0 4px rgba(0,0,0,.45);
       background:#a855f7;
       color:#fff;
-      font-size:12px;
+      font-size:8px;
       line-height:1;
       font-weight:950;
     }
@@ -712,7 +712,7 @@
       <div class="board-head">
         <div>
           <h2>Boat Launching Vendors</h2>
-          <div class="hint">Vendor locations and contact information from the attached spreadsheet.</div>
+          <div class="hint">Vendor locations and contact information</div>
         </div>
         <span class="vendor-pill">● Vendors shown on map</span>
       </div>
@@ -1738,7 +1738,7 @@
 
 
     function vendorGlyph(){
-      return `<svg width="13" height="13" viewBox="0 0 64 64" aria-hidden="true">
+      return `<svg width="8" height="8" viewBox="0 0 64 64" aria-hidden="true">
         <path d="M32 6C20.4 6 11 15.4 11 27c0 15.2 21 31 21 31s21-15.8 21-31C53 15.4 43.6 6 32 6Z" fill="white"/>
         <circle cx="32" cy="27" r="7" fill="#a855f7"/>
       </svg>`;
@@ -1771,8 +1771,8 @@
           icon:L.divIcon({
             className:"",
             html:`<div class="vendor-marker">${vendorGlyph()}</div>`,
-            iconSize:[22,22],
-            iconAnchor:[11,11]
+            iconSize: [16, 16],
+            iconAnchor:[6,6]
           })
         }).addTo(vendorLayer);
 
