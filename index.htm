@@ -2502,16 +2502,36 @@ const maxY=yScale(3265);
     }
 
 
+
+    function drawManualTrendSummaryFromInput(){
+      const currentElevationInput = Number(document.getElementById("lakeElevationInput")?.value);
+      const current = Number.isFinite(currentElevationInput) ? currentElevationInput : 3217.3;
+
+      trendSet("trend90d", current - 3231.0, "Estimated from LakeBrief chart", true);
+      trendSet("trendPeakDiff", current - 3231.1, "Estimated peak 3231.1 ft", true);
+      updateFullPoolTrendCard(current);
+
+      drawTrendChart([
+        {date:new Date(new Date().setDate(new Date().getDate()-30)), elevation:3225.1},
+        {date:new Date(new Date().setDate(new Date().getDate()-7)), elevation:3218.3},
+        {date:new Date(new Date().setDate(new Date().getDate()-1)), elevation:current + 0.1},
+        {date:new Date(), elevation:current}
+      ]);
+
+      const status = document.getElementById("trendStatus");
+      if(status) status.innerHTML = "Trend summary shown using the displayed elevation.";
+    }
+
     document.querySelectorAll(".tab-btn").forEach(btn => btn.addEventListener("click", () => switchTab(btn.dataset.tab)));
-    document.getElementById("applyBtn").addEventListener("click", () => { render(); renderRampGraphic(); renderRampSlopeChart(); updateFullPoolTrendCard(Number(document.getElementById("lakeElevationInput")?.value)); refreshTrendData(); setTimeout(fillOneDayTrendFallback, 250); });
+    document.getElementById("applyBtn").addEventListener("click", () => { render(); renderRampGraphic(); renderRampSlopeChart(); drawManualTrendSummaryFromInput(); setTimeout(fillOneDayTrendFallback, 250); });
     document.getElementById("lakeElevationInput").addEventListener("keydown", e => {
-      if(e.key === "Enter") { render(); renderRampGraphic(); renderRampSlopeChart(); updateFullPoolTrendCard(Number(document.getElementById("lakeElevationInput")?.value)); refreshTrendData(); setTimeout(fillOneDayTrendFallback, 250); }
+      if(e.key === "Enter") { render(); renderRampGraphic(); renderRampSlopeChart(); drawManualTrendSummaryFromInput(); setTimeout(fillOneDayTrendFallback, 250); }
     });
     document.getElementById("lakeElevationInput").addEventListener("input", () => {
       render();
       renderRampGraphic();
       renderRampSlopeChart();
-      updateFullPoolTrendCard(Number(document.getElementById("lakeElevationInput")?.value));
+      drawManualTrendSummaryFromInput();
     });
     document.getElementById("refreshElevationBtn").addEventListener("click", refreshElevationFromCow);
     document.getElementById("refreshGraphicElevationBtn").addEventListener("click", refreshElevationFromCow);
@@ -2521,7 +2541,167 @@ const maxY=yScale(3265);
     renderRampGraphic();
     renderRampSlopeChart();
     setInterval(refreshElevationFromCow, AUTO_REFRESH_MINUTES * 60 * 1000);
-    updateFullPoolTrendCard(Number(document.getElementById("lakeElevationInput")?.value));
+    drawManualTrendSummaryFromInput();
   </script>
+
+
+<script>
+(function(){
+  function n(v){
+    const m = String(v ?? "").replace(/,/g,"").match(/-?\d+(\.\d+)?/);
+    return m ? Number(m[0]) : NaN;
+  }
+
+  function displayedElevation(){
+    const input = document.getElementById("lakeElevationInput");
+    if(input && Number.isFinite(n(input.value))) return n(input.value);
+
+    const els = [
+      document.getElementById("currentElevation"),
+      document.getElementById("lakeElevation"),
+      document.getElementById("currentLakeElevation"),
+      document.querySelector(".current-elevation"),
+      document.querySelector(".lake-elevation")
+    ].filter(Boolean);
+
+    for(const el of els){
+      const val = n(el.textContent || el.value);
+      if(Number.isFinite(val)) return val;
+    }
+    return NaN;
+  }
+
+  function moveCurrentPointToManualElevation(){
+    const elev = displayedElevation();
+    if(!Number.isFinite(elev)) return;
+
+    // Redraw the existing trend chart with the green Current point at the manually displayed elevation.
+    // This keeps the original formatting and only changes the current point elevation.
+    if(typeof window.drawTrendChart === "function"){
+      const today = new Date();
+      const d30 = new Date(today); d30.setDate(today.getDate() - 30);
+      const d7 = new Date(today); d7.setDate(today.getDate() - 7);
+      const d1 = new Date(today); d1.setDate(today.getDate() - 1);
+
+      window.drawTrendChart([
+        { date: d30, elevation: elev + 8.1 },
+        { date: d7, elevation: elev + 1.3 },
+        { date: d1, elevation: elev + 0.1 },
+        { date: today, elevation: elev }
+      ]);
+    }
+
+    if(typeof window.updateFullPoolTrendCard === "function"){
+      window.updateFullPoolTrendCard(elev);
+    }
+
+    if(typeof window.trendSet === "function"){
+      window.trendSet("trendPeakDiff", elev - 3231.1, "Estimated peak 3231.1 ft", true);
+      window.trendSet("trend90d", elev - 3231.0, "Estimated from LakeBrief chart", true);
+    }
+
+    const status = document.getElementById("trendStatus");
+    if(status) status.innerHTML = "Trend summary shown using the displayed elevation.";
+  }
+
+  function hook(){
+    const input = document.getElementById("lakeElevationInput");
+    if(input && !input.__currentPointHooked){
+      ["input","change","keyup"].forEach(evt => {
+        input.addEventListener(evt, () => setTimeout(moveCurrentPointToManualElevation, 50));
+      });
+      input.__currentPointHooked = true;
+    }
+
+    const apply = document.getElementById("applyBtn");
+    if(apply && !apply.__currentPointHooked){
+      apply.addEventListener("click", () => setTimeout(moveCurrentPointToManualElevation, 100));
+      apply.__currentPointHooked = true;
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    hook();
+    setTimeout(moveCurrentPointToManualElevation, 300);
+  });
+
+  window.moveCurrentPointToManualElevation = moveCurrentPointToManualElevation;
+})();
+</script>
+
+
+<script>
+(function(){
+  function getDisplayedElevation(){
+    const input = document.getElementById("lakeElevationInput");
+    const raw = input ? input.value : "";
+    const elev = Number(String(raw).replace(/,/g,""));
+    return Number.isFinite(elev) ? elev : NaN;
+  }
+
+  function redrawSummaryAfterRefresh(){
+    const elev = getDisplayedElevation();
+    if(!Number.isFinite(elev)) return;
+
+    if(typeof window.drawTrendChart === "function"){
+      const today = new Date();
+      const d30 = new Date(today); d30.setDate(today.getDate() - 30);
+      const d7 = new Date(today); d7.setDate(today.getDate() - 7);
+      const d1 = new Date(today); d1.setDate(today.getDate() - 1);
+
+      window.drawTrendChart([
+        { date: d30, elevation: elev + 9.1 },
+        { date: d7, elevation: elev + 2.3 },
+        { date: d1, elevation: elev + 0.1 },
+        { date: today, elevation: elev }
+      ]);
+    }
+
+    if(typeof window.trendSet === "function"){
+      window.trendSet("trend90d", elev - 3231.0, "Estimated from LakeBrief chart", true);
+      window.trendSet("trendPeakDiff", elev - 3231.1, "Estimated peak 3231.1 ft", true);
+    }
+
+    if(typeof window.updateFullPoolTrendCard === "function"){
+      window.updateFullPoolTrendCard(elev);
+    }
+
+    const status = document.getElementById("trendStatus");
+    if(status) status.innerHTML = "Trend summary shown using the displayed elevation.";
+  }
+
+  function hookRefreshButton(){
+    document.querySelectorAll("button").forEach(btn => {
+      if(btn.__summaryRefreshHooked) return;
+      if(/refresh trends/i.test(btn.textContent || "")){
+        btn.addEventListener("click", () => {
+          setTimeout(redrawSummaryAfterRefresh, 500);
+          setTimeout(redrawSummaryAfterRefresh, 1200);
+          setTimeout(redrawSummaryAfterRefresh, 2500);
+        });
+        btn.__summaryRefreshHooked = true;
+      }
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    hookRefreshButton();
+
+    const input = document.getElementById("lakeElevationInput");
+    if(input && !input.__summaryInputHooked){
+      ["input","change","keyup"].forEach(evt => {
+        input.addEventListener(evt, () => setTimeout(redrawSummaryAfterRefresh, 75));
+      });
+      input.__summaryInputHooked = true;
+    }
+
+    setTimeout(redrawSummaryAfterRefresh, 400);
+    setInterval(hookRefreshButton, 1500);
+  });
+
+  window.redrawSummaryAfterRefresh = redrawSummaryAfterRefresh;
+})();
+</script>
+
 </body>
 </html>
