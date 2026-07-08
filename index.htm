@@ -381,6 +381,7 @@
     .leaflet-pane.ramp-red-pane{z-index:760;}
     .leaflet-pane.ramp-yellow-pane{z-index:770;}
     .leaflet-pane.ramp-green-pane{z-index:780;}
+    .leaflet-pane.vendor-pane{z-index:790;}
 
     .trend-panel{padding:16px;min-height:720px;}
     .trend-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;}
@@ -479,6 +480,79 @@
     .bar-hover{cursor:pointer;}
     .bar-hover:hover{opacity:.72;}
 
+    .vendor-marker{
+      width:22px;height:22px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      border:2px solid #06131f;
+      box-shadow:0 0 6px rgba(0,0,0,.45);
+      background:#a855f7;
+      color:#fff;
+      font-size:12px;
+      line-height:1;
+      font-weight:950;
+    }
+    .vendor-label{
+      background:rgba(7,19,31,.86);
+      color:#fff;
+      border:1px solid rgba(168,85,247,.65);
+      border-radius:999px;
+      padding:2px 7px;
+      font-size:11px;
+      font-weight:900;
+      white-space:nowrap;
+      box-shadow:0 1px 5px rgba(0,0,0,.35);
+      text-shadow:0 1px 2px rgba(0,0,0,.8);
+    }
+
+
+    .vendor-board{
+      margin-top:14px;
+      background:linear-gradient(180deg, rgba(18,43,69,.97), rgba(9,26,43,.97));
+      border:1px solid rgba(255,255,255,.09);
+      border-radius:22px;
+      box-shadow:0 20px 70px rgba(0,0,0,.24);
+      padding:16px;
+    }
+    .vendor-table-wrap{
+      overflow:auto;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);
+      background:rgba(7,19,31,.55);
+    }
+    .vendor-table{
+      width:100%;
+      border-collapse:collapse;
+      min-width:760px;
+      color:#eef7ff;
+      font-size:.92rem;
+    }
+    .vendor-table th{
+      background:rgba(168,85,247,.22);
+      color:#f4e8ff;
+      text-transform:uppercase;
+      letter-spacing:.06em;
+      font-size:.75rem;
+      padding:10px 12px;
+      border-bottom:1px solid rgba(255,255,255,.12);
+      white-space:nowrap;
+    }
+    .vendor-table td{
+      padding:10px 12px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      vertical-align:middle;
+    }
+    .vendor-table tr:last-child td{border-bottom:0;}
+    .vendor-table a{color:#aee2ff;font-weight:800;}
+    .vendor-pill{
+      display:inline-flex;align-items:center;gap:6px;
+      background:rgba(168,85,247,.16);
+      border:1px solid rgba(168,85,247,.35);
+      color:#f4e8ff;
+      border-radius:999px;
+      padding:.22rem .5rem;
+      font-weight:900;
+      font-size:.78rem;
+    }
 
     .figure-with-right-legend{
       display:flex;
@@ -600,6 +674,7 @@
           <div class="legend-row"><span class="dot" style="background:var(--open)"></span>Open <strong id="mapOpenCount">0</strong></div>
           <div class="legend-row"><span class="dot" style="background:var(--limited)"></span>Limited / Use Caution <strong id="mapLimitedCount">0</strong></div>
           <div class="legend-row"><span class="dot" style="background:var(--closed)"></span>Closed <strong id="mapClosedCount">0</strong></div>
+          <div class="legend-row"><span class="dot" style="background:#a855f7"></span>Vendors <strong id="mapVendorCount">4</strong></div>
           <div class="small-note" id="damContourNote" style="margin-top:8px;color:#d8e9f7;max-width:260px;">
             
           </div>
@@ -630,6 +705,30 @@
           <div class="group-title closed">Closed <span id="closedCountTitle">0</span></div>
           <div id="closedGroup" class="ramp-list-grid"></div>
         </div>
+      </div>
+    </section>
+
+    <section class="vendor-board">
+      <div class="board-head">
+        <div>
+          <h2>Boat Launching Vendors</h2>
+          <div class="hint">Vendor locations and contact information from the attached spreadsheet.</div>
+        </div>
+        <span class="vendor-pill">● Vendors shown on map</span>
+      </div>
+      <div class="vendor-table-wrap">
+        <table class="vendor-table" aria-label="Lake McConaughy boat launching vendors">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Phone</th>
+              <th>Website</th>
+            </tr>
+          </thead>
+          <tbody id="vendorTableBody">
+            <tr><td colspan="3">Loading vendors...</td></tr>
+          </tbody>
+        </table>
       </div>
     </section>
     </div>
@@ -935,6 +1034,14 @@
     sortRampsUpstreamToDownstream();
 
 
+    const vendors = [
+      {Name:"Van's Lakeview", Latitude:41.238458, Longitude:-101.848186, Phone:"(308) 284-4965", Website:"https://vanslakeview.com/"},
+      {Name:"Ski Patrol", Latitude:41.254436, Longitude:-101.687366, Phone:"(308) 726-7368", Website:"http://www.skipatrol-lakemac.com/"},
+      {Name:"Admiral's Cove Resort and Marina", Latitude:41.272738, Longitude:-101.816132, Phone:"(720) 362-9187", Website:"https://admiralscoveresort.com/"},
+      {Name:"Big Mac Marina", Latitude:41.246234, Longitude:-101.726051, Phone:"(308) 355-5555", Website:"https://bigmacmarina.com/"}
+    ];
+
+
     const map = L.map("map", { zoomControl:false });
     const homeBounds = L.latLngBounds(
       [41.185, -102.045],
@@ -949,6 +1056,8 @@
     map.getPane("rampYellowPane").classList.add("ramp-yellow-pane");
     map.createPane("rampGreenPane");
     map.getPane("rampGreenPane").classList.add("ramp-green-pane");
+    map.createPane("vendorPane");
+    map.getPane("vendorPane").classList.add("vendor-pane");
 
 
     const HomeControl = L.Control.extend({
@@ -993,7 +1102,7 @@
           } else {
             roadOverlay.addTo(map);
             div.style.opacity = "1";
-            try{ rampLayer.bringToFront(); contourLabelGroup.bringToFront(); }catch(e){}
+            try{ rampLayer.bringToFront(); vendorLayer.bringToFront(); contourLabelGroup.bringToFront(); }catch(e){}
           }
         });
         return div;
@@ -1004,8 +1113,9 @@
     const contourLayerGroup = L.layerGroup().addTo(map);
     const contourLabelGroup = L.layerGroup().addTo(map);
     const rampLayer = L.layerGroup().addTo(map);
+    const vendorLayer = L.layerGroup().addTo(map);
 
-    setTimeout(() => { try{ rampLayer.bringToFront(); }catch(e){} }, 500);
+    setTimeout(() => { try{ rampLayer.bringToFront(); vendorLayer.bringToFront(); }catch(e){} }, 500);
 
     map.on("zoomend", refreshContourLabelsForZoom);
 
@@ -1491,6 +1601,7 @@
         contourLayerGroup.bringToBack();
         contourLabelGroup.bringToFront();
         rampLayer.bringToFront();
+        vendorLayer.bringToFront();
 
         if(status){ status.innerHTML = "<strong>Contours:</strong> Depth labels increase as you zoom in"; }
       } catch(err){
@@ -1569,6 +1680,7 @@
 
       renderGroups(open, limited, closed);
       renderMap(evaluated, lakeElevation);
+      renderVendors();
       loadLakeContours(lakeElevation);
       updateTimestamp();
     }
@@ -1622,6 +1734,69 @@
         <path d="M25 31V13l18 18H25Z" fill="white"/>
         <path d="M11 51c5 3 9 3 14 0 5 3 9 3 14 0 5 3 9 3 14 0" fill="none" stroke="white" stroke-width="5" stroke-linecap="round"/>
       </svg>`;
+    }
+
+
+    function vendorGlyph(){
+      return `<svg width="13" height="13" viewBox="0 0 64 64" aria-hidden="true">
+        <path d="M32 6C20.4 6 11 15.4 11 27c0 15.2 21 31 21 31s21-15.8 21-31C53 15.4 43.6 6 32 6Z" fill="white"/>
+        <circle cx="32" cy="27" r="7" fill="#a855f7"/>
+      </svg>`;
+    }
+
+
+    function renderVendorTable(){
+      const body = document.getElementById("vendorTableBody");
+      if(!body) return;
+      body.innerHTML = vendors.map(v => `
+        <tr>
+          <td><strong>${v.Name || ""}</strong></td>
+          <td>${v.Phone || ""}</td>
+          <td>${v.Website ? `<a href="${v.Website}" target="_blank" rel="noopener">${v.Website}</a>` : ""}</td>
+        </tr>
+      `).join("");
+    }
+
+    function renderVendors(){
+      if(!vendorLayer) return;
+      vendorLayer.clearLayers();
+      const countEl = document.getElementById("mapVendorCount");
+      if(countEl) countEl.textContent = vendors.length;
+      renderVendorTable();
+
+      vendors.forEach(v => {
+        const marker = L.marker([v.Latitude, v.Longitude], {
+          pane:"vendorPane",
+          zIndexOffset:4000,
+          icon:L.divIcon({
+            className:"",
+            html:`<div class="vendor-marker">${vendorGlyph()}</div>`,
+            iconSize:[22,22],
+            iconAnchor:[11,11]
+          })
+        }).addTo(vendorLayer);
+
+        marker.bindTooltip(`
+          <b>${v.Name}</b><br>
+          Vendor / boat launching service<br>
+          ${v.Phone ? "Phone: " + v.Phone : ""}
+        `, {
+          permanent:false,
+          direction:"top",
+          offset:L.point(0,-10),
+          className:"vendor-label",
+          opacity:1
+        });
+
+        marker.bindPopup(`
+          <b>${v.Name}</b><br>
+          Type: <b>Vendor / boat launching service</b><br>
+          ${v.Phone ? "Phone: " + v.Phone + "<br>" : ""}
+          ${v.Website ? `<a href="${v.Website}" target="_blank" rel="noopener">Website</a>` : ""}
+        `);
+      });
+
+      setTimeout(() => { try{ vendorLayer.bringToFront(); }catch(e){} }, 0);
     }
 
     function renderMap(evaluated, lakeElevation){
@@ -1679,6 +1854,7 @@
           map.getPane("rampYellowPane").style.zIndex = 770;
           map.getPane("rampGreenPane").style.zIndex = 780;
           rampLayer.bringToFront();
+          vendorLayer.bringToFront();
         }catch(e){}
       }, 0);
     }
