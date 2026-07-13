@@ -375,7 +375,7 @@
       overflow:auto;
     }
     #rampElevationSvg{display:block;width:100%;min-width:1100px;height:660px;background:#fff;}
-    #rampSlopeSvg{display:block;width:100%;min-width:1100px;height:430px;background:#fff;border-top:1px solid #e5e7eb;margin-top:8px;}
+    #rampSlopeSvg{display:block;width:100%;min-width:1100px;height:560px;background:#fff;border-top:1px solid #e5e7eb;margin-top:8px;}
 
 
     .leaflet-pane.ramp-red-pane{z-index:760;}
@@ -760,7 +760,7 @@
 </div>
 
           <div class="figure-with-right-legend">
-  <svg id="rampSlopeSvg" viewBox="0 0 1420 430" role="img" aria-label="Lake McConaughy boat ramp slope chart"></svg>
+  <svg id="rampSlopeSvg" viewBox="0 0 1280 560" role="img" aria-label="Lake McConaughy boat ramp slope chart"></svg>
 </div>
         </div>
       </section>
@@ -2199,7 +2199,7 @@
       if(!svg) return;
       while(svg.firstChild) svg.removeChild(svg.firstChild);
 
-      const W=1280, H=430, L=86, R=40, T=66, B=150;
+      const W=1280, H=560, L=86, R=40, T=66, B=275;
       const data = ramps.map(r => ({
         ...r,
         slope:rampSlopePercent(r),
@@ -2229,7 +2229,7 @@
         const y=yScale(slope);
         const barH = Math.max(3, yScale(0)-y);
         let color = "#2563eb";
-        if(slope >= 15) color = "#0891b2";
+        if(slope >= 15) color = "#16a34a";
         else if(slope >= 10) color = "#7c3aed";
 
         const bar = svgEl("rect", {x:x-12,y:y,width:24,height:barH,fill:color,opacity:.92,class:"bar-hover"});
@@ -2240,15 +2240,47 @@
         addWrappedSvgText(svg, r.AreaName, x, H-B+22, 12, 12, {"text-anchor":"middle",fill:"#475569","font-size":10,"font-weight":800});
       });
 
-      const legendX = W - 260, legendY = 70;
-      [
-        ["<10%","Generally easier","#2563eb"],
-        ["10–15%","Moderate","#7c3aed"],
-        ["≥15%","Steeper","#0891b2"]
-      ].forEach((d,i)=>{
-        const y = legendY + i*22;
-        svg.appendChild(svgEl("rect",{x:legendX,y:y-10,width:13,height:13,rx:2,fill:d[2]}));
-        svg.appendChild(svgEl("text",{x:legendX+20,y:y+1,fill:"#334155","font-size":12,"font-weight":800},`${d[0]} ${d[1]}`));
+      // Clean three-column guidance legend below the chart and ramp labels.
+      const legendTop = 410;
+      const cardGap = 18;
+      const cardW = (W - L - R - cardGap * 2) / 3;
+      const cardH = 118;
+      const legendItems = [
+        {range:"<10%", title:"Shallow Slope", color:"#2563eb", lines:[
+          "May require backing farther into the water.",
+          "Larger boats may be harder to launch at low lake levels.",
+          "Best suited for smaller boats and normal conditions."
+        ]},
+        {range:"10–15%", title:"Preferred Launch Slope", color:"#7c3aed", lines:[
+          "Ideal for most trailered boats, including larger vessels.",
+          "Provides good launching depth without excessive backing."
+        ]},
+        {range:"15–18%", title:"Steeper Slope", color:"#16a34a", lines:[
+          "Provides excellent water access.",
+          "Use additional caution when launching and retrieving."
+        ]}
+      ];
+
+      legendItems.forEach((d,i)=>{
+        const x = L + i * (cardW + cardGap);
+        svg.appendChild(svgEl("rect",{
+          x:x, y:legendTop, width:cardW, height:cardH, rx:10,
+          fill:"#f8fafc", stroke:"#dbe3ec", "stroke-width":1
+        }));
+        svg.appendChild(svgEl("rect",{
+          x:x, y:legendTop, width:7, height:cardH, rx:4, fill:d.color
+        }));
+        svg.appendChild(svgEl("rect",{
+          x:x+20, y:legendTop+18, width:15, height:15, rx:3, fill:d.color
+        }));
+        svg.appendChild(svgEl("text",{
+          x:x+44, y:legendTop+31, fill:"#1f2937", "font-size":13, "font-weight":950
+        }, `${d.range} — ${d.title}`));
+        d.lines.forEach((line,j)=>{
+          svg.appendChild(svgEl("text",{
+            x:x+20, y:legendTop+57+(j*18), fill:"#475569", "font-size":11, "font-weight":700
+          }, line));
+        });
       });
     }
 
