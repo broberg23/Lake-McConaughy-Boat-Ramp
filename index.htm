@@ -977,7 +977,7 @@
             "Latitude": 41.207287,
             "Longitude": -101.673541,
             "RampBottom": 3195.0,
-            "RampTop": 3202.0,
+            "RampTop": 3212.0,
             "TopLat": 41.207287,
             "TopLon": -101.673541,
             "Notes": "Estimated elevation — assumed until lake level recedes enough to verify/update."
@@ -996,7 +996,7 @@
             "AreaName": "Diver's Bay",
             "Latitude": 41.206229,
             "Longitude": -101.679156,
-            "RampBottom": 3210.0,
+            "RampBottom": 3205.0,
             "RampTop": 3248.0,
             "TopLat": 41.205145,
             "TopLon": -101.678199,
@@ -1686,13 +1686,18 @@
     }
 
     function rampCard(r, index){
+      const isSpillwayLowWater = String(r.AreaName || "").toLowerCase().includes("spillway bay - low water ramp");
+      const displayedDepth = isSpillwayLowWater ? r.TopDepth : r.Depth;
+      const depthLabel = isSpillwayLowWater ? "estimated above ramp top" : "above ramp bottom";
+
       return `
         <div class="ramp-card" onclick="zoomTo(${r.Latitude}, ${r.Longitude})">
           <div class="ramp-name">${index ? index + ". " : ""}${shortName(r.AreaName)}</div>
           <div class="ramp-bottom-row">
-            <div class="ramp-depth ${r.Status.key}">${r.Depth >= 0 ? "+" : ""}${r.Depth.toFixed(1)} ft</div>
+            <div class="ramp-depth ${r.Status.key}">${displayedDepth >= 0 ? "+" : ""}${displayedDepth.toFixed(1)} ft</div>
             <div class="mini-status ${r.Status.key}">${r.Status.shortLabel || r.Status.label}</div>
           </div>
+          <div class="small-note" style="margin-top:5px;">${depthLabel}</div>
           ${r.TopDepth >= 3 ? `<div class="small-note" style="color:#ff9a9e;margin-top:5px;">Overtopped: ${r.TopDepth.toFixed(1)} ft above ramp top</div>` : ""}
           ${r.Notes ? `<div class="small-note" style="color:#ffdb73;margin-top:5px;">${r.Notes}</div>` : ""}
         </div>
@@ -1842,8 +1847,9 @@
           Lake elevation: ${Math.round(lakeElevation)} ft<br>
           Ramp bottom: ${r.RampBottom.toFixed(1)} ft<br>
           Ramp top: ${r.RampTop.toFixed(1)} ft<br>
-          Water above ramp bottom: ${r.Depth.toFixed(1)} ft<br>
-          Water above ramp top: ${r.TopDepth.toFixed(1)} ft<br>
+          ${String(r.AreaName || "").toLowerCase().includes("spillway bay - low water ramp")
+            ? `Estimated water above ramp top: ${r.TopDepth.toFixed(1)} ft<br>`
+            : `Water above ramp bottom: ${r.Depth.toFixed(1)} ft<br>Water above ramp top: ${r.TopDepth.toFixed(1)} ft<br>`}
           Note: ${r.Notes || r.Status.reason || ""}
         `);
       });
