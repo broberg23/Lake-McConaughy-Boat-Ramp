@@ -965,7 +965,7 @@
 </div>
 </div>
 <div class="elev-input">
-<input class="form-control" id="lakeElevationInput" step="0.1" type="number" value="3217"/>
+<input class="form-control" id="lakeElevationInput" step="1" type="number" value="3217"/>
 <button class="btn btn-primary" id="applyBtn">Apply</button>
 </div>
 <button class="btn btn-primary w-100 mt-2" id="refreshElevationBtn">Refresh current elevation</button>
@@ -2279,7 +2279,7 @@
           const text = await fetchTextWithTimeout(url, 6000);
           const data = parseMcConaughyData(text);
           if(data && plausibleElevation(data.elevation)){
-            return {...data, elevation:Number(data.elevation.toFixed(1)), source:data.source || "LakeBrief water level"};
+            return {...data, elevation:Math.round(Number(data.elevation)), source:data.source || "LakeBrief water level"};
           }
         }catch(err){
           console.warn("LakeBrief elevation read failed:", err.message);
@@ -2288,7 +2288,7 @@
 
       const typedElevation = Number(document.getElementById("lakeElevationInput")?.value);
       const safeElevation = (Number.isFinite(typedElevation) && typedElevation > 3000 && typedElevation < 3276)
-        ? Number(typedElevation.toFixed(1))
+        ? Math.round(typedElevation)
         : 3217;
       return {elevation:safeElevation, storage:null, percentFull:null, source:"displayed/manual value"};
     }
@@ -2312,13 +2312,13 @@
       try{
         const live = await fetchCnppidLiveElevation();
         if(live && plausibleElevation(live.elevation)){
-          document.getElementById("lakeElevationInput").value = Number(live.elevation).toFixed(1);
+          document.getElementById("lakeElevationInput").value = Math.round(Number(live.elevation));
           updateOptionalStorageDisplay(live);
           const pct = Number.isFinite(live.percentFull) ? ` (${live.percentFull.toFixed(1)}% full)` : "";
           if(status){
             status.textContent = live.source === "displayed/manual value"
-              ? `LakeBrief blocks direct browser reads from this standalone page. Using the displayed/manual elevation: ${Number(live.elevation).toFixed(1)} ft. Dashboard calculations are still updated.`
-              : `Current elevation copied from LakeBrief Today value: ${Number(live.elevation).toFixed(1)} ft${pct}`;
+              ? `LakeBrief blocks direct browser reads from this standalone page. Using the displayed/manual elevation: ${Math.round(Number(live.elevation))} ft. Dashboard calculations are still updated.`
+              : `Current elevation copied from LakeBrief Today value: ${Math.round(Number(live.elevation))} ft${pct}`;
           }
         } else {
           if(status) status.textContent = "LakeBrief blocks direct browser reads from this standalone page. Using the displayed/manual elevation; dashboard calculations are still updated.";
@@ -3441,8 +3441,8 @@ const LAKE_HISTORICAL_DATA = [["1941-02-09",3136.6,2300.0],["1941-02-10",3139.3,
   const firstDate = records[0]?.date;
   const lastDate = records[records.length-1]?.date;
 
-  function fmtElev(v){ return Number.isFinite(v) ? `${v.toFixed(1)} ft` : "--"; }
-  function fmtSigned(v){ return Number.isFinite(v) ? `${v>0?"+":""}${v.toFixed(1)} ft` : "--"; }
+  function fmtElev(v){ return Number.isFinite(v) ? `${Math.round(v)} ft` : "--"; }
+  function fmtSigned(v){ return Number.isFinite(v) ? `${v>0?"+":""}${Math.round(v)} ft` : "--"; }
   function fmtStorage(v){ return Number.isFinite(v) ? `${Math.round(v).toLocaleString()} acre-ft` : "--"; }
   function clamp(v,min,max){ return Math.max(min,Math.min(max,v)); }
   function avg(arr){ return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : NaN; }
@@ -3483,7 +3483,7 @@ const LAKE_HISTORICAL_DATA = [["1941-02-09",3136.6,2300.0],["1941-02-10",3139.3,
   }
 
   function updateHistoricalComparison(){
-    const elevation = Number(document.getElementById("lakeElevationInput")?.value);
+    const elevation = Math.round(Number(document.getElementById("lakeElevationInput")?.value));
     if(!Number.isFinite(elevation) || !records.length) return;
 
     const today = new Date();
@@ -3527,7 +3527,7 @@ const LAKE_HISTORICAL_DATA = [["1941-02-09",3136.6,2300.0],["1941-02-10",3139.3,
     const formatExtremeRecords = (extremeValue, extremeRecords) => {
       if(!Number.isFinite(extremeValue) || !extremeRecords.length) return "--";
       const years = [...new Set(extremeRecords.map(r => r.year))].sort((a,b)=>a-b);
-      return `${extremeValue.toFixed(1)} ft (${years.join(", ")})`;
+      return `${Math.round(extremeValue)} ft (${years.join(", ")})`;
     };
     setText("historicDateMax",formatExtremeRecords(overallMax, overallMaxRecords));
     setText("historicDateMean",fmtElev(dateAverage));
@@ -3563,14 +3563,14 @@ const LAKE_HISTORICAL_DATA = [["1941-02-09",3136.6,2300.0],["1941-02-10",3139.3,
       }
     }
     [[10,.10],[25,.25],[50,.50],[75,.75],[90,.90]].forEach(([label,p])=>{
-      setText(`historicP${label}`,`${quantile(sortedElevations,p).toFixed(1)} ft`);
+      setText(`historicP${label}`,`${Math.round(quantile(sortedElevations,p))} ft`);
     });
     const percentileLabel=ordinal(percentile);
     const aboveShare=100-percentile;
-    setText("historicCurrentMarkerLabel",`${percentileLabel} percentile · ${elevation.toFixed(1)} ft`);
+    setText("historicCurrentMarkerLabel",`${percentileLabel} percentile · ${Math.round(elevation)} ft`);
     setText("historicDistributionPosition",`Today's elevation: ${percentile.toFixed(1)}th percentile`);
     setText("historicDistributionInsight",
-      `At ${elevation.toFixed(1)} ft, the lake is lower than ${aboveShare.toFixed(1)}% of all recorded daily elevations since 1950. ` +
+      `At ${Math.round(elevation)} ft, the lake is lower than ${aboveShare.toFixed(1)}% of all recorded daily elevations since 1950. ` +
       `Only ${percentile.toFixed(1)}% of recorded days were at or below today's level.`
     );
 
