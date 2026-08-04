@@ -972,7 +972,7 @@
 <div class="small-note" id="liveElevationStatus">Click refresh to check LakeBrief. If the live read is unavailable in the browser, the displayed/manual value is used.</div>
 <div class="small-note mt-2" id="overtopSummary" style="color:#ffdb73;font-weight:800;"></div>
 <div class="small-note mt-2" id="assumedElevationNote" style="color:#ffdb73;font-weight:800;">
-            Note: Martin Bay Low Water, Diver's Bay, and Spillway Bay - Low Water Ramp include assumed elevations and should be updated when water recedes enough to verify them.
+            
           </div>
 </section>
 <div class="two-card">
@@ -1286,13 +1286,13 @@
       },
       {
             "AreaName": "Martin Bay Low Water",
-            "Latitude": 41.237381,
-            "Longitude": -101.678139,
-            "RampBottom": 3205.0,
+            "Latitude": 41.237004,
+            "Longitude": -101.678180,
+            "RampBottom": 3207.0,
             "RampTop": 3247.0,
             "TopLat": 41.238449,
             "TopLon": -101.677391,
-            "Notes": "Estimated elevation — assumed until lake level recedes enough to verify/update."
+            "Notes": ""
       },
       {
             "AreaName": "Spillway Bay - Front",
@@ -1306,13 +1306,13 @@
       },
       {
             "AreaName": "Spillway Bay - Low Water Ramp",
-            "Latitude": 41.207287,
-            "Longitude": -101.673541,
-            "RampBottom": 3195.0,
+            "Latitude": 41.207464,
+            "Longitude": -101.673697,
+            "RampBottom": 3201.0,
             "RampTop": 3212.0,
-            "TopLat": 41.207287,
-            "TopLon": -101.673541,
-            "Notes": "Estimated elevation — assumed until lake level recedes enough to verify/update."
+            "TopLat": 41.207322,
+            "TopLon": -101.673441,
+            "Notes": ""
       },
       {
             "AreaName": "Spillway Bay - Back Ramp",
@@ -1326,13 +1326,13 @@
       },
       {
             "AreaName": "Diver's Bay",
-            "Latitude": 41.206229,
-            "Longitude": -101.679156,
-            "RampBottom": 3200.0,
+            "Latitude": 41.206311,
+            "Longitude": -101.679244,
+            "RampBottom": 3209.0,
             "RampTop": 3248.0,
             "TopLat": 41.205145,
             "TopLon": -101.678199,
-            "Notes": "Estimated elevation — assumed until lake level recedes enough to verify/update."
+            "Notes": ""
       },
       {
             "AreaName": "Van's Lakeview",
@@ -3498,8 +3498,11 @@ const LAKE_HISTORICAL_DATA = [["1941-02-09",3136.6,2300.0],["1941-02-10",3139.3,
     const dateMaxYears = sameDate.filter(r=>Math.abs(r.elevation-dateMax)<0.0001).map(r=>r.year);
     const dateDifference = elevation-dateAverage;
 
-    const lowerOrEqual = sortedElevations.filter(v=>v<=elevation).length;
+    // Compare the whole-foot current elevation against whole-foot historical elevations
+    // so the percentile calculation matches the values displayed to the user.
+    const lowerOrEqual = sortedElevations.filter(v=>Math.round(v)<=elevation).length;
     const percentile = 100*lowerOrEqual/sortedElevations.length;
+    const displayedPercentile = Math.round(percentile);
     const higherCount = sortedElevations.filter(v=>v>elevation).length;
     const rank = higherCount+1;
     const estimatedStorage = estimateStorage(elevation);
@@ -3511,8 +3514,8 @@ const LAKE_HISTORICAL_DATA = [["1941-02-09",3136.6,2300.0],["1941-02-10",3139.3,
 
     setText("historicCurrent",fmtElev(elevation));
     setText("historicCurrentDate",today.toLocaleDateString([],{month:"long",day:"numeric",year:"numeric"}));
-    setText("historicPercentile",ordinal(percentile));
-    setText("historicPercentileNote",`Higher than ${percentile.toFixed(1)}% of ${records.length.toLocaleString()} recorded days`);
+    setText("historicPercentile",ordinal(displayedPercentile));
+    setText("historicPercentileNote",`Higher than ${displayedPercentile}% of ${records.length.toLocaleString()} recorded days`);
     setText("historicDateAverage",fmtElev(dateAverage));
     setText("historicDateAverageNote",`${sameDate.length} observations for ${today.toLocaleDateString([],{month:"long",day:"numeric"})}`);
     setText("historicDateDifference",fmtSigned(dateDifference));
@@ -3535,7 +3538,7 @@ const LAKE_HISTORICAL_DATA = [["1941-02-09",3136.6,2300.0],["1941-02-10",3139.3,
     setText("historicDateMin",formatExtremeRecords(overallMin, overallMinRecords));
 
     // Position today's marker by cumulative frequency, with reference elevations at key percentiles.
-    const currentPct = clamp(percentile,0,100);
+    const currentPct = clamp(displayedPercentile,0,100);
     const currentMarker=document.getElementById("historicCurrentMarker");
     if(currentMarker){
       currentMarker.style.left=`${currentPct}%`;
@@ -3565,13 +3568,13 @@ const LAKE_HISTORICAL_DATA = [["1941-02-09",3136.6,2300.0],["1941-02-10",3139.3,
     [[10,.10],[25,.25],[50,.50],[75,.75],[90,.90]].forEach(([label,p])=>{
       setText(`historicP${label}`,`${Math.round(quantile(sortedElevations,p))} ft`);
     });
-    const percentileLabel=ordinal(percentile);
-    const aboveShare=100-percentile;
-    setText("historicCurrentMarkerLabel",`${percentileLabel} percentile · ${Math.round(elevation)} ft`);
-    setText("historicDistributionPosition",`Today's elevation: ${percentile.toFixed(1)}th percentile`);
+    const percentileLabel=ordinal(displayedPercentile);
+    const aboveShare=100-displayedPercentile;
+    setText("historicCurrentMarkerLabel",`${percentileLabel} percentile · ${elevation} ft`);
+    setText("historicDistributionPosition",`Today's elevation: ${percentileLabel} percentile`);
     setText("historicDistributionInsight",
       `At ${Math.round(elevation)} ft, the lake is lower than ${aboveShare.toFixed(1)}% of all recorded daily elevations since 1950. ` +
-      `Only ${percentile.toFixed(1)}% of recorded days were at or below today's level.`
+      `Only ${displayedPercentile}% of recorded days were at or below today's level.`
     );
 
     const similarList=document.getElementById("historicSimilarYears");
