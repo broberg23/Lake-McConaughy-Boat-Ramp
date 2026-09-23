@@ -921,6 +921,19 @@
   font-size:.75rem;
   line-height:1.35;
 }
+
+/* Compact current lake volume summary */
+.volume-summary-card{max-width:none;margin:12px 0 8px;padding:13px 14px 12px;border:1px solid rgba(94,174,226,.28);border-radius:16px;background:linear-gradient(180deg,rgba(25,57,84,.72),rgba(20,48,72,.72));box-shadow:none;color:#f5fbff}
+.volume-summary-title{font-size:.78rem;font-weight:950;letter-spacing:.09em;color:#f5fbff;margin-bottom:8px}
+.volume-summary-value{font-size:1.55rem;line-height:1.05;font-weight:950;color:#fff;margin-bottom:6px}
+.volume-summary-elev{font-size:.78rem;color:#a9d5f3;margin-bottom:10px}
+.volume-summary-gauge{height:10px;border-radius:999px;overflow:hidden;background:rgba(4,20,34,.65);border:1px solid rgba(255,255,255,.08)}
+.volume-summary-fill{height:100%;width:0;border-radius:999px;background:#55b4f5;transition:width .35s ease}
+.volume-summary-scale{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;margin-top:6px;font-size:.68rem;color:#b8d4e7}
+.volume-summary-scale strong{font-size:.69rem;color:#75c8ff;text-align:center}
+.volume-summary-scale span:last-child{text-align:right}
+.volume-summary-note{margin-top:9px;font-size:.72rem;line-height:1.42;color:#a9c9df}
+@media(max-width:700px){.volume-summary-card{max-width:none}.volume-summary-scale{grid-template-columns:auto 1fr auto;gap:7px}.volume-summary-scale strong{font-size:.64rem}}
 </style>
 </link></head>
 <body>
@@ -969,6 +982,14 @@
 <button class="btn btn-primary" id="applyBtn">Apply</button>
 </div>
 <button class="btn btn-primary w-100 mt-2" id="refreshElevationBtn">Refresh current elevation</button>
+<section class="volume-summary-card" id="mainLakeVolumePanel" aria-label="Current Lake Volume">
+  <div class="volume-summary-title">CURRENT LAKE VOLUME</div>
+  <div class="volume-summary-value" id="lakeVolumeText">-- acre-ft</div>
+  <div class="volume-summary-elev" id="lakeVolumeElevation">Based on -- ft NAVD88</div>
+  <div class="volume-summary-gauge"><div class="volume-summary-fill" id="lakeVolumeFill"></div></div>
+  <div class="volume-summary-scale"><span>0</span><strong id="lakeVolumePercent">--% of volume at 3265 ft</strong><span>1,726,000 ac-ft</span></div>
+  <div class="volume-summary-note">Estimated from the 2003 Lake McConaughy DEM elevation-volume table using NAVD88 water-surface elevation. Values between listed elevations are linearly interpolated.</div>
+</section>
 <div class="small-note" id="liveElevationStatus">Click refresh to check LakeBrief. If the live read is unavailable in the browser, the displayed/manual value is used.</div>
 <div class="small-note mt-2" id="overtopSummary" style="color:#ffdb73;font-weight:800;"></div>
 <div class="small-note mt-2" id="assumedElevationNote" style="color:#ffdb73;font-weight:800;">
@@ -997,6 +1018,7 @@
 </div>
 </main>
 </section>
+
 <section class="ramp-board">
 <div class="board-head">
 <div>
@@ -1963,9 +1985,239 @@
       }catch(e){}
     }
 
+    const LAKE_VOLUME_TABLE_NAVD88 = [
+      [3097,0.0],
+      [3098,0.2],
+      [3099,1.1],
+      [3100,3.8],
+      [3101,8.9],
+      [3102,17.1],
+      [3103,30.0],
+      [3104,48.7],
+      [3105,73.3],
+      [3106,103.9],
+      [3107,139.6],
+      [3108,180.6],
+      [3109,226.9],
+      [3110,278.8],
+      [3111,336.4],
+      [3112,400.3],
+      [3113,471.0],
+      [3114,549.5],
+      [3115,637.9],
+      [3116,739.0],
+      [3117,851.5],
+      [3118,974.4],
+      [3119,1106.9],
+      [3120,1248.6],
+      [3121,1400.0],
+      [3122,1561.1],
+      [3123,1731.6],
+      [3124,1911.2],
+      [3125,2100.3],
+      [3126,2298.7],
+      [3127,2506.7],
+      [3128,2724.2],
+      [3129,2951.3],
+      [3130,3188.2],
+      [3131,3434.9],
+      [3132,3691.4],
+      [3133,3957.7],
+      [3134,4233.8],
+      [3135,4520.6],
+      [3136,4824.5],
+      [3137,5161.3],
+      [3138,5555.4],
+      [3139,6021.6],
+      [3140,6576.5],
+      [3141,7222.1],
+      [3142,7955.1],
+      [3143,8781.6],
+      [3144,9718.6],
+      [3145,10782],
+      [3146,11967],
+      [3147,13275],
+      [3148,14730],
+      [3149,16333],
+      [3150,18085],
+      [3151,20009],
+      [3152,22079],
+      [3153,24278],
+      [3154,26619],
+      [3155,29131],
+      [3156,31828],
+      [3157,34718],
+      [3158,37815],
+      [3159,41123],
+      [3160,44623],
+      [3161,48296],
+      [3162,52157],
+      [3163,56222],
+      [3164,60546],
+      [3165,65127],
+      [3166,69933],
+      [3167,74978],
+      [3168,80286],
+      [3169,85862],
+      [3170,91686],
+      [3171,97741],
+      [3172,104030],
+      [3173,110550],
+      [3174,117300],
+      [3175,124270],
+      [3176,131470],
+      [3177,138900],
+      [3178,146570],
+      [3179,154490],
+      [3180,162630],
+      [3181,171000],
+      [3182,179600],
+      [3183,188420],
+      [3184,197450],
+      [3185,206690],
+      [3186,216120],
+      [3187,225730],
+      [3188,235610],
+      [3189,245760],
+      [3190,256170],
+      [3191,266790],
+      [3192,277650],
+      [3193,288730],
+      [3194,300000],
+      [3195,311470],
+      [3196,323120],
+      [3197,334930],
+      [3198,346960],
+      [3199,359210],
+      [3200,371670],
+      [3201,384370],
+      [3202,397340],
+      [3203,410560],
+      [3204,424050],
+      [3205,437820],
+      [3206,451870],
+      [3207,466210],
+      [3208,480840],
+      [3209,495770],
+      [3210,510940],
+      [3211,526340],
+      [3212,541930],
+      [3213,557720],
+      [3214,573730],
+      [3215,590010],
+      [3216,606510],
+      [3217,623250],
+      [3218,640250],
+      [3219,657480],
+      [3220,674950],
+      [3221,692670],
+      [3222,710640],
+      [3223,728830],
+      [3224,747230],
+      [3225,765830],
+      [3226,784620],
+      [3227,803610],
+      [3228,822800],
+      [3229,842220],
+      [3230,861880],
+      [3231,881760],
+      [3232,901920],
+      [3233,922320],
+      [3234,942950],
+      [3235,963820],
+      [3236,984900],
+      [3237,1006200],
+      [3238,1027700],
+      [3239,1049500],
+      [3240,1071500],
+      [3241,1093800],
+      [3242,1116300],
+      [3243,1139000],
+      [3244,1162000],
+      [3245,1185300],
+      [3246,1208800],
+      [3247,1232700],
+      [3248,1256800],
+      [3249,1281400],
+      [3250,1306200],
+      [3251,1331400],
+      [3252,1356900],
+      [3253,1383200],
+      [3254,1410000],
+      [3255,1437100],
+      [3256,1464600],
+      [3257,1492500],
+      [3258,1520700],
+      [3259,1549200],
+      [3260,1577900],
+      [3261,1607000],
+      [3262,1636400],
+      [3263,1666000],
+      [3264,1695900],
+      [3265,1726000],
+      [3266.4,1756300]
+    ];
+    const VOLUME_AT_3265 = 1726000;
+
+    function interpolateLakeVolume(elevation){
+      const e = Number(elevation);
+      if(!Number.isFinite(e)) return NaN;
+      const t = LAKE_VOLUME_TABLE_NAVD88;
+      if(e <= t[0][0]) return t[0][1];
+      if(e >= t[t.length-1][0]) return t[t.length-1][1];
+      for(let i=0;i<t.length-1;i++){
+        const a=t[i], b=t[i+1];
+        if(e >= a[0] && e <= b[0]){
+          const f=(e-a[0])/(b[0]-a[0]);
+          return a[1] + f*(b[1]-a[1]);
+        }
+      }
+      return NaN;
+    }
+
+    function updateLakeVolumeGraphic(elevation){
+      const vol = interpolateLakeVolume(elevation);
+      if(!Number.isFinite(vol)) return;
+      const pct = Math.max(0, Math.min(100, (vol / VOLUME_AT_3265) * 100));
+      const text = document.getElementById("lakeVolumeText");
+      const elev = document.getElementById("lakeVolumeElevation");
+      const fill = document.getElementById("lakeVolumeFill");
+      const percent = document.getElementById("lakeVolumePercent");
+      if(text) text.textContent = `${Math.round(vol).toLocaleString()} acre-ft`;
+      if(elev) elev.textContent = `Based on ${Number(elevation).toFixed(Number.isInteger(Number(elevation)) ? 0 : 1)} ft NAVD88`;
+      if(fill) fill.style.width = `${pct.toFixed(1)}%`;
+      if(percent) percent.textContent = `${pct.toFixed(1)}% of volume at 3265 ft`;
+      renderLakeVolumeChart(elevation, vol);
+    }
+
+    function renderLakeVolumeChart(elevation, currentVolume){
+      const svg=document.getElementById("lakeVolumeSvg");
+      if(!svg) return;
+      while(svg.firstChild) svg.removeChild(svg.firstChild);
+      const NS="http://www.w3.org/2000/svg";
+      const add=(tag,a={},txt="")=>{const el=document.createElementNS(NS,tag);Object.entries(a).forEach(([k,v])=>el.setAttribute(k,v));if(txt)el.textContent=txt;svg.appendChild(el);return el;};
+      const W=1280,H=660,m={l:92,r:36,t:55,b:78};
+      const minE=3097,maxE=3266.4,maxV=1760000;
+      const x=e=>m.l+(e-minE)/(maxE-minE)*(W-m.l-m.r);
+      const y=v=>H-m.b-v/maxV*(H-m.t-m.b);
+      add("text",{x:W/2,y:28,"text-anchor":"middle",fill:"#0b1f3a","font-size":22,"font-weight":950},"Lake McConaughy Elevation–Volume Relationship");
+      for(let v=0;v<=maxV;v+=200000){const yy=y(v);add("line",{x1:m.l,x2:W-m.r,y1:yy,y2:yy,stroke:"#dbe4ee","stroke-width":1});add("text",{x:m.l-12,y:yy+4,"text-anchor":"end",fill:"#475569","font-size":11,"font-weight":700},v===0?"0":(v/1000000).toFixed(1)+"M");}
+      for(let e=3100;e<=3260;e+=20){const xx=x(e);add("line",{x1:xx,x2:xx,y1:m.t,y2:H-m.b,stroke:"#edf2f7","stroke-width":1});add("text",{x:xx,y:H-m.b+25,"text-anchor":"middle",fill:"#475569","font-size":11,"font-weight":700},String(e));}
+      add("line",{x1:m.l,x2:m.l,y1:m.t,y2:H-m.b,stroke:"#64748b","stroke-width":1.5});add("line",{x1:m.l,x2:W-m.r,y1:H-m.b,y2:H-m.b,stroke:"#64748b","stroke-width":1.5});
+      const pts=LAKE_VOLUME_TABLE_NAVD88.map(d=>`${x(d[0])},${y(d[1])}`).join(" ");
+      const area=`${x(minE)},${y(0)} ${pts} ${x(maxE)},${y(0)}`;
+      add("polygon",{points:area,fill:"#2aa8ff",opacity:.12});add("polyline",{points:pts,fill:"none",stroke:"#137ec2","stroke-width":4,"stroke-linejoin":"round","stroke-linecap":"round"});
+      const ce=Math.max(minE,Math.min(maxE,Number(elevation))),cv=Number(currentVolume);const cx=x(ce),cy=y(cv);
+      add("line",{x1:cx,x2:cx,y1:cy,y2:H-m.b,stroke:"#2563eb","stroke-width":2,"stroke-dasharray":"6 5"});add("line",{x1:m.l,x2:cx,y1:cy,y2:cy,stroke:"#2563eb","stroke-width":2,"stroke-dasharray":"6 5"});add("circle",{cx,cy,r:8,fill:"#2563eb",stroke:"white","stroke-width":3});
+      const labelX=Math.min(W-m.r-205,cx+14),labelY=Math.max(m.t+22,cy-18);add("rect",{x:labelX-8,y:labelY-18,width:200,height:48,rx:8,fill:"white",stroke:"#cbd5e1"});add("text",{x:labelX,y:labelY,fill:"#0b1f3a","font-size":12,"font-weight":900},`${ce.toFixed(1)} ft NAVD88`);add("text",{x:labelX,y:labelY+18,fill:"#137ec2","font-size":13,"font-weight":950},`${Math.round(cv).toLocaleString()} acre-ft`);
+      add("text",{x:W/2,y:H-20,"text-anchor":"middle",fill:"#334155","font-size":13,"font-weight":900},"Water-Surface Elevation (ft NAVD88)");add("text",{x:24,y:H/2,transform:`rotate(-90 24 ${H/2})`,"text-anchor":"middle",fill:"#334155","font-size":13,"font-weight":900},"Lake Volume (acre-ft)");
+    }
+
+
     function render(){
       const lakeElevation = Number(document.getElementById("lakeElevationInput").value);
       document.getElementById("lakeElevationText").textContent = Math.round(lakeElevation);
+      updateLakeVolumeGraphic(lakeElevation);
 
       const evaluated = ramps.map(r => {
         const depth = lakeElevation - r.RampBottom;
