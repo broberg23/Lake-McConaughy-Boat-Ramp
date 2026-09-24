@@ -985,10 +985,8 @@
 <section class="volume-summary-card" id="mainLakeVolumePanel" aria-label="Current Lake Volume">
   <div class="volume-summary-title">CURRENT LAKE VOLUME</div>
   <div class="volume-summary-value" id="lakeVolumeText">-- acre-ft</div>
-  <div class="volume-summary-elev" id="lakeVolumeElevation">Based on -- ft NAVD88</div>
   <div class="volume-summary-gauge"><div class="volume-summary-fill" id="lakeVolumeFill"></div></div>
   <div class="volume-summary-scale"><span>0</span><strong id="lakeVolumePercent">--% of volume at 3265 ft</strong><span>1,726,000 ac-ft</span></div>
-  <div class="volume-summary-note">Estimated from the 2003 Lake McConaughy DEM elevation-volume table using NAVD88 water-surface elevation. Values between listed elevations are linearly interpolated.</div>
 </section>
 <div class="small-note" id="liveElevationStatus">Click refresh to check LakeBrief. If the live read is unavailable in the browser, the displayed/manual value is used.</div>
 <div class="small-note mt-2" id="overtopSummary" style="color:#ffdb73;font-weight:800;"></div>
@@ -1146,13 +1144,7 @@
 <div class="date-band-row"><span>Lowest Recorded (All-Time)</span><strong id="historicDateMin">--</strong></div>
 </div>
 </section>
-<section class="historic-similar-card">
-<div class="historic-section-title">Most Similar Historical Years</div>
-<div class="small-note historic-similar-intro">
-      Years with an elevation closest to the current level on the same calendar date.
-    </div>
-<div class="historic-similar-list" id="historicSimilarYears"></div>
-</section>
+
 </div>
 </section>
 </div>
@@ -2570,7 +2562,7 @@
           if(status){
             status.textContent = live.source === "displayed/manual value"
               ? `LakeBrief blocks direct browser reads from this standalone page. Using the displayed/manual elevation: ${Math.round(Number(live.elevation))} ft. Dashboard calculations are still updated.`
-              : `Current elevation copied from LakeBrief Today value: ${Math.round(Number(live.elevation))} ft${pct}`;
+              : "";
           }
         } else {
           if(status) status.textContent = "LakeBrief blocks direct browser reads from this standalone page. Using the displayed/manual elevation; dashboard calculations are still updated.";
@@ -3787,7 +3779,7 @@ const LAKE_HISTORICAL_DATA = [["1941-02-09",3136.6,2300.0],["1941-02-10",3139.3,
     setText("historicDateMax",formatExtremeRecords(overallMax, overallMaxRecords));
     setText("historicDateMean",fmtElev(dateAverage));
     setText("historicDateCurrent",fmtElev(elevation));
-    setText("historicDateMin",formatExtremeRecords(overallMin, overallMinRecords));
+    setText("historicDateMin", overallMinRecords.length ? `3197 ft (${[...new Set(overallMinRecords.map(r => r.year))].sort((a,b)=>a-b).join(", ")})` : "3197 ft");
 
     // Position today's marker by cumulative frequency, with reference elevations at key percentiles.
     const currentPct = clamp(displayedPercentile,0,100);
